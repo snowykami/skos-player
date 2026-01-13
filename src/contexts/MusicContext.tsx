@@ -1,0 +1,504 @@
+
+import type { MusicTrack } from '@/models/music'
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+
+type PlayMode = 'repeat-all' | 'repeat-one' | 'shuffle'
+
+export interface MusicContextValue {
+  // 播放状态
+  playlist: MusicTrack[]
+  currentIndex: number | null
+  currentTrack: MusicTrack | null
+  isPlaying: boolean
+  playMode: PlayMode
+  currentTime: number | null
+  duration: number | null
+  bufferedPercent: number
+  rotateDeg: number // 专辑封面旋转角度（用于动画）
+  volume: number
+
+  // 低层能力：暴露 audio 引用用于高频读取（避免全局高频 setState）
+  getAudio: () => HTMLAudioElement | null
+
+  // 播放列表 操作
+  replacePlaylist: (tracks: MusicTrack[], startIndex?: number) => void
+
+  // 播放控制
+  playTrack: (index: number) => void // 指定播放曲目
+  play: () => void // 播放
+  pause: () => void // 暂停
+  togglePlay: () => void // 切换播放/暂停
+  next: () => void // 下一首
+  prev: () => void // 上一首
+  setPlayMode: (m: PlayMode) => void // 设置播放模式
+  setCurrentIndex: (i: number | null) => void // 设置当前索引切换曲目
+
+  // 可选：音量/进度控制
+  seek: (seconds: number) => void // 跳转到指定秒数
+  setVolume: (v: number) => void // 设置音量 0~1
+
+  // sample track 样品曲目，用于在未获取到时fallback
+  sampleTrack: MusicTrack
+}
+
+export const MusicContext = createContext<MusicContextValue | null>(null)
+
+export function useMusic(): MusicContextValue {
+  const ctx = useContext(MusicContext)
+  if (!ctx)
+    throw new Error('useMusic must be used within MusicProvider')
+  return ctx
+}
+
+export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const pendingPlayRef = useRef(false)
+  const prevTrackIdRef = useRef<number | null>(null)
+  const [playlist, setPlaylist] = useState<MusicTrack[]>([])
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [playMode, setPlayMode] = useState<PlayMode>('repeat-all')
+  const [currentTime, setCurrentTime] = useState<number | null>(null)
+  const [duration, setDuration] = useState<number | null>(null)
+  const [bufferedPercent, setBufferedPercent] = useState<number>(0)
+  const [rotateDeg, setRotateDeg] = useState(0)
+  const currentTrack = currentIndex != null ? playlist[currentIndex] ?? null : null
+  const [volume, setVolumeState] = useState<number>(1)
+  // 旋转动画
+  useEffect(() => {
+    let rafId: number | null = null
+    const rotate = () => {
+      setRotateDeg(prev => (prev + 0.2) % 360)
+      rafId = requestAnimationFrame(rotate)
+    }
+    if (isPlaying) {
+      rafId = requestAnimationFrame(rotate)
+    }
+    return () => {
+      if (rafId != null) {
+        cancelAnimationFrame(rafId)
+      }
+    }
+  }, [isPlaying])
+
+  // 创建 audio 元素并做基础配置（仅在客户端）
+  useEffect(() => {
+    if (typeof window === 'undefined')
+      return
+    if (!audioRef.current) {
+      const audio = new Audio()
+      audio.preload = 'metadata'
+      audio.volume = volume
+      audioRef.current = audio
+    }
+  }, [volume])
+
+  // 当 currentTrack 变化时更新 audio.src（仅在 track id 变化时），并在 pendingPlay 时尝试播放
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio)
+      return
+
+    const run = async () => {
+      if (!currentTrack) {
+        audio.src = ''
+        prevTrackIdRef.current = null
+        return
+      }
+
+      if (prevTrackIdRef.current !== currentTrack.id) {
+        audio.src = currentTrack.audio || ''
+        // 不强制重置 currentTime 为 0，只有在确实为新曲目时才重置
+        audio.currentTime = 0
+        prevTrackIdRef.current = currentTrack.id
+      }
+
+      if (pendingPlayRef.current) {
+        void audio.play().catch(() => {
+          /* play 可能被浏览器阻止，事件监听会同步状态 */
+        })
+        pendingPlayRef.current = false
+      }
+    }
+
+    void run()
+
+    return () => {
+      // cleanup - 异步操作通过 audio 事件安全处理
+    }
+  }, [currentTrack, currentIndex])
+
+  // 统一通过 audio 事件驱动上下文状态（isPlaying / time / duration / buffered）
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio)
+      return
+
+    let rafId: number | null = null
+    let lastTimeTick = 0
+
+    const onPlay = () => {
+      setIsPlaying(true)
+    }
+    const onPause = () => {
+      setIsPlaying(false)
+    }
+
+    const onLoaded = () => {
+      setDuration(Number.isFinite(audio.duration) ? audio.duration : null)
+      // set initial currentTime
+      setCurrentTime(audio.currentTime ?? 0)
+      // update buffered
+      try {
+        if (audio.buffered.length > 0 && Number.isFinite(audio.duration) && audio.duration > 0) {
+          const end = audio.buffered.end(audio.buffered.length - 1)
+          setBufferedPercent(Math.min(1, end / audio.duration))
+        }
+        else {
+          setBufferedPercent(0)
+        }
+      }
+      catch {
+        setBufferedPercent(0)
+      }
+    }
+    const onTimeUpdate = () => {
+      // RAF 节流，避免每帧都 setState
+      const now = performance.now()
+      if (now - lastTimeTick < 120) {
+        if (rafId == null) {
+          rafId = requestAnimationFrame(() => {
+            setCurrentTime(audio.currentTime)
+            lastTimeTick = performance.now()
+            rafId = null
+          })
+        }
+        return
+      }
+      setCurrentTime(audio.currentTime)
+      lastTimeTick = now
+    }
+    const onProgress = () => {
+      try {
+        if (audio.buffered.length > 0 && Number.isFinite(audio.duration) && audio.duration > 0) {
+          const end = audio.buffered.end(audio.buffered.length - 1)
+          setBufferedPercent(Math.min(1, end / audio.duration))
+        }
+        else {
+          setBufferedPercent(0)
+        }
+      }
+      catch {
+        setBufferedPercent(0)
+      }
+    }
+    const onEnded = () => {
+      if (playMode === 'repeat-one') {
+        audio.currentTime = 0
+        void audio.play().catch(() => { })
+        return
+      }
+
+      // 切歌逻辑：改变 currentIndex，标记 pendingPlay 以便自动播放下一首
+      setCurrentIndex((prev) => {
+        if (playlist.length === 0)
+          return null
+        if (playMode === 'shuffle') {
+          if (playlist.length === 1)
+            return 0
+          let idx = Math.floor(Math.random() * playlist.length)
+          if (idx === prev && playlist.length > 1)
+            idx = (idx + 1) % playlist.length
+          pendingPlayRef.current = true
+          return idx
+        }
+        const nextIdx = (prev == null ? 0 : prev + 1)
+        pendingPlayRef.current = true
+        return nextIdx >= playlist.length ? 0 : nextIdx
+      })
+    }
+
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
+    audio.addEventListener('loadedmetadata', onLoaded)
+    audio.addEventListener('timeupdate', onTimeUpdate)
+    audio.addEventListener('progress', onProgress)
+    audio.addEventListener('ended', onEnded)
+
+    // 初始同步
+    onLoaded()
+    onTimeUpdate()
+    onProgress()
+
+    return () => {
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
+      audio.removeEventListener('loadedmetadata', onLoaded)
+      audio.removeEventListener('timeupdate', onTimeUpdate)
+      audio.removeEventListener('progress', onProgress)
+      audio.removeEventListener('ended', onEnded)
+      if (rafId != null)
+        cancelAnimationFrame(rafId)
+    }
+    // 仅依赖 playlist.length 和 mode（onEnded 使用）
+  }, [playMode, playlist.length])
+
+  // 操作函数 —— 不直接 set isPlaying/currentTime（由事件回路同步）
+  const replacePlaylist = useCallback((tracks: MusicTrack[], startIndex = 0) => {
+    setPlaylist(tracks)
+    setCurrentIndex(tracks.length > 0 ? Math.max(0, Math.min(startIndex, tracks.length - 1)) : null)
+  }, [])
+
+  const playTrack = useCallback((index: number) => {
+    if (index < 0 || index >= playlist.length)
+      return
+    pendingPlayRef.current = true
+    setCurrentIndex(index)
+  }, [playlist])
+
+  const play = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio)
+      return
+    void audio.play().catch(() => {
+      /* 失败或被阻止，事件处理会同步状态 */
+    })
+  }, [])
+
+  const pause = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio)
+      return
+    audio.pause()
+  }, [])
+
+  const togglePlay = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio)
+      return
+    if (audio.paused) {
+      void audio.play().catch(() => { })
+    }
+    else {
+      audio.pause()
+    }
+  }, [])
+
+  const next = useCallback(() => {
+    setCurrentIndex((curr) => {
+      if (playlist.length === 0)
+        return null
+      if (playMode === 'shuffle') {
+        if (playlist.length === 1)
+          return 0
+        let idx = Math.floor(Math.random() * playlist.length)
+        if (idx === curr && playlist.length > 1)
+          idx = (idx + 1) % playlist.length
+        pendingPlayRef.current = true
+        return idx
+      }
+      const nextIdx = (curr == null ? 0 : curr + 1)
+      pendingPlayRef.current = true
+      return nextIdx >= playlist.length ? 0 : nextIdx
+    })
+  }, [playMode, playlist.length])
+
+  const prev = useCallback(() => {
+    setCurrentIndex((curr) => {
+      if (playlist.length === 0)
+        return null
+      if (playMode === 'shuffle') {
+        if (playlist.length === 1)
+          return 0
+        let idx = Math.floor(Math.random() * playlist.length)
+        if (idx === curr && playlist.length > 1)
+          idx = (idx + 1) % playlist.length
+        pendingPlayRef.current = true
+        return idx
+      }
+      const prevIdx = (curr == null ? playlist.length - 1 : curr - 1)
+      pendingPlayRef.current = true
+      return prevIdx < 0 ? playlist.length - 1 : prevIdx
+    })
+  }, [playMode, playlist.length])
+
+  const seek = useCallback((seconds: number) => {
+    const audio = audioRef.current
+    if (!audio)
+      return
+    setCurrentTime(Math.max(0, Math.min(seconds, audio.duration || seconds)))
+    try {
+      audio.currentTime = Math.max(0, Math.min(seconds, audio.duration || seconds))
+    }
+    catch {
+      console.warn('Audio seek failed')
+    }
+  }, [])
+
+  const setVolume = useCallback((v: number) => {
+    const audio = audioRef.current
+    const next = Math.max(0, Math.min(1, v))
+    setVolumeState(next)
+    if (audio)
+      audio.volume = next
+  }, [])
+
+  const sampleTrack: MusicTrack = {
+    id: 0,
+    name: 'Sample Track',
+    artists: ['Sample Artist'],
+    album: 'Sample Album',
+    albumPic: 'https://via.placeholder.com/150',
+    audio: '',
+    lyric: '',
+    link: '',
+    aliases: [],
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.mediaSession)
+      return
+    const ms = navigator.mediaSession
+    const audio = audioRef.current
+    if (!audio)
+      return
+
+    const makeArtwork = (url?: string) => {
+      if (!url)
+        return []
+      return [
+        { src: url, sizes: '512x512', type: 'image/png' },
+        { src: url, sizes: '96x96', type: 'image/png' },
+      ]
+    }
+
+    const updateMetadata = () => {
+      if (!currentTrack) {
+        try {
+          ms.metadata = null
+        }
+        catch { 
+          console.warn('MediaSession metadata clear failed')
+        }
+        ms.playbackState = 'none'
+        return
+      }
+      try {
+        ms.metadata = new MediaMetadata({
+          title: currentTrack.name ?? '',
+          artist: Array.isArray(currentTrack.artists) ? currentTrack.artists.join(', ') : (currentTrack.artists ?? ''),
+          album: currentTrack.album ?? '',
+          artwork: makeArtwork(currentTrack.albumPic),
+        })
+      }
+      catch {
+        // 某些环境可能不支持构造函数
+        try {
+          ms.metadata = {
+            title: currentTrack.name ?? '',
+            artist: Array.isArray(currentTrack.artists) ? currentTrack.artists.join(', ') : (currentTrack.artists ?? ''),
+            album: currentTrack.album ?? '',
+            artwork: makeArtwork(currentTrack.albumPic),
+          }
+        }
+        catch {
+          console.warn('MediaSession metadata set failed')
+         }
+      }
+      ms.playbackState = isPlaying ? 'playing' : 'paused'
+    }
+
+    try {
+      ms.setActionHandler('play', () => play())
+      ms.setActionHandler('pause', () => pause())
+      ms.setActionHandler('previoustrack', () => prev())
+      ms.setActionHandler('nexttrack', () => next())
+      ms.setActionHandler('seekto', (details) => {
+        if (!audio || typeof details?.seekTime !== 'number')
+          return
+        if (details.fastSeek && typeof audio.fastSeek === 'function') {
+          try {
+            audio.fastSeek(details.seekTime)
+          }
+          catch {
+            audio.currentTime = details.seekTime
+          }
+        }
+        else {
+          audio.currentTime = details.seekTime
+        }
+      })
+    }
+    catch {
+      // 某些浏览器/环境对 setActionHandler 有限制
+    }
+
+    // 同步 position state
+    const onTimeUpdate = () => {
+      try {
+        if ('setPositionState' in ms && audio && Number.isFinite(audio.duration) && audio.duration > 0) {
+          ms.setPositionState({
+            duration: audio.duration,
+            position: audio.currentTime,
+            playbackRate: audio.playbackRate ?? 1,
+          })
+        }
+      }
+      catch { 
+        console.warn('MediaSession setPositionState failed')
+      }
+    }
+
+    updateMetadata()
+    audio.addEventListener('timeupdate', onTimeUpdate)
+    // 当 track 或 isPlaying 变化时也更新 metadata/playbackState
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate)
+      try {
+        ms.setActionHandler('play', null)
+        ms.setActionHandler('pause', null)
+        ms.setActionHandler('previoustrack', null)
+        ms.setActionHandler('nexttrack', null)
+        ms.setActionHandler('seekto', null)
+      }
+      catch { 
+        // 某些浏览器/环境对 setActionHandler 有限制
+      }
+    }
+  }, [currentTrack, isPlaying, play, pause, next, prev])
+
+  const value: MusicContextValue = {
+    playlist,
+    currentIndex,
+    currentTrack,
+    isPlaying,
+    playMode,
+    currentTime,
+    duration,
+    bufferedPercent,
+    rotateDeg,
+    getAudio: () => audioRef.current,
+    replacePlaylist,
+    playTrack,
+    play,
+    pause,
+    togglePlay,
+    next,
+    prev,
+    setPlayMode,
+    setCurrentIndex,
+    seek,
+    setVolume,
+    sampleTrack,
+    volume,
+  }
+
+  return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>
+}
