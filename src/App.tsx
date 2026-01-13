@@ -4,6 +4,7 @@ import Music from '@/music/Music'
 
 import { useEffect } from 'react'
 import type { CSSProperties } from 'react'
+import { DeviceProvider } from './contexts/DeviceContext'
 
 const dragStyle = { WebkitAppRegion: 'drag' } as CSSProperties & {
   WebkitAppRegion: 'drag'
@@ -58,7 +59,9 @@ function App() {
     <div className="h-full relative overflow-hidden">
       <MusicProvider>
         <LyricProvider>
+          <DeviceProvider>
           <Music />
+          </DeviceProvider>
         </LyricProvider>
       </MusicProvider>
       <div className="absolute z-50" style={dragOverlayStyle} />

@@ -121,31 +121,25 @@ export const LyricProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const loadLyric = useCallback((rawLyric: RawLyricResponse) => {
     const result = parse(rawLyric);
 
-    // 默认模式：翻译优先，然后是罗马音
-    let defaultMode: LyricMode = 'none';
-    if (result.state.tracks.some(t => t.type === 'translation')) {
-      defaultMode = 'translation';
-    } else if (result.state.tracks.some(t => t.type === 'romaji')) {
-      defaultMode = 'romaji';
-    }
-
-    // 根据默认模式设置轨道启用状态
-    result.state.tracks.forEach(track => {
+    // 不要在切歌/重新加载歌词时覆盖用户选择的模式
+    // 当前 lyricMode 由用户交互决定；这里只根据现有 lyricMode 同步轨道启用状态
+    result.state.tracks.forEach((track) => {
       if (track.type === 'original') {
-        track.enabled = true;
-      } else if (track.type === 'translation') {
-        track.enabled = defaultMode === 'translation';
-      } else if (track.type === 'romaji') {
-        track.enabled = defaultMode === 'romaji';
+        track.enabled = true
       }
-    });
+      else if (track.type === 'translation') {
+        track.enabled = lyricMode === 'translation'
+      }
+      else if (track.type === 'romaji') {
+        track.enabled = lyricMode === 'romaji'
+      }
+    })
 
     setLyricState(result.state);
     setMetadata(result.metadata);
     setIsInstrumental(result.isInstrumental);
     setSourceType(result.sourceType);
-    setLyricModeState(defaultMode);
-  }, []);
+  }, [lyricMode]);
 
   // 清空歌词
   const clearLyric = useCallback(() => {
@@ -159,7 +153,7 @@ export const LyricProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setMetadata([]);
     setIsInstrumental(true);
     setSourceType('none');
-    setLyricModeState('none');
+    // 不强制重置 lyricMode，保持用户选择
   }, []);
 
   const value: LyricContextValue = {

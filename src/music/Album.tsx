@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMusic } from '@/hooks/useMusic'
 
 const MIN_DIAMETER = 120

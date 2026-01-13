@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react'
-import { deriveLyricThemeColors, getAlbumCoverColor } from './color'
+import React, { useEffect, useRef, useState } from 'react'
+import { getLyricColor, getAlbumCoverColor } from './color'
 import { useLyric } from '@/hooks/useLyric'
 import { useMusic } from '@/hooks/useMusic'
+import { useDevice } from '@/contexts/DeviceContext'
+import ThemeModeButtons from './ThemeModeButtons'
 import type { LyricLine } from '@/lyric/types'
-import type { LyricMode } from '@/contexts/LyricContext'
 
 export default function LyricScroller() {
   const {
@@ -23,50 +24,36 @@ export default function LyricScroller() {
   const containerRef = useRef<HTMLDivElement>(null)
   const lineRefs = useRef<(HTMLDivElement | null)[]>([])
 
-  const isDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const [coverColor, setCoverColor] = useState<string>('#888888')
 
-  // 主题颜色
-  const [lyricTheme, setLyricTheme] = React.useState(() => {
-    const d = deriveLyricThemeColors('rgb(100, 100, 100)')
-    return {
-      dayText: d.dayText,
-      dayBg: d.dayBg,
-      nightText: d.nightText,
-      nightBg: d.nightBg,
-      dayOtherText: d.dayOtherText,
-      nightOtherText: d.nightOtherText,
-      dayProgress: d.dayProgress,
-      nightProgress: d.nightProgress,
-    }
-  })
+  const { isDark, mode, toggleMode } = useDevice()
 
+  const lyricColor = getLyricColor(coverColor)
 
   // 封面颜色提取
   useEffect(() => {
-    let mounted = true
     getAlbumCoverColor(currentTrack?.albumPic || '').then((color) => {
-      if (!mounted) return
-      const d = deriveLyricThemeColors(color)
-      setLyricTheme({
-        dayText: d.dayText,
-        dayBg: d.dayBg,
-        nightText: d.nightText,
-        nightBg: d.nightBg,
-        dayOtherText: d.dayOtherText,
-        nightOtherText: d.nightOtherText,
-        dayProgress: d.dayProgress,
-        nightProgress: d.nightProgress,
-      })
+      setCoverColor(color || '#888888')
     })
-    return () => {
-      mounted = false
-    }
   }, [currentTrack?.albumPic])
 
   // 自动滚动控制：默认启用；一旦用户手动滚动，则暂时停止自动滚动
   // 当歌词行更新（currentLyricIndex 变化）时，自动回正到当前行
   const [autoScrollEnabled, setAutoScrollEnabled] = React.useState(true)
   const isAutoScrollingRef = useRef(false)
+
+  // 切歌时把歌词滚到顶部（而不是沿用上一首歌的滚动位置）
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    // 重置对齐与滚动位置
+    lastAutoAlignedIndexRef.current = -1
+    isAutoScrollingRef.current = true
+    container.scrollTop = 0
+    requestAnimationFrame(() => {
+      isAutoScrollingRef.current = false
+    })
+  }, [currentTrack?.id])
 
   useEffect(() => {
     const container = containerRef.current
@@ -204,61 +191,64 @@ export default function LyricScroller() {
     return ''
   }
 
-  // 智能按钮逻辑
-  const getButtonConfig = (): { text: string; show: boolean; active: boolean } => {
-    // 只有原文时，不显示按钮
-    if (!hasTranslation && !hasRomaji) {
-      return { text: '', show: false, active: false }
-    }
-
-    // 只有翻译时
-    if (hasTranslation && !hasRomaji) {
-      return { text: '译', show: true, active: lyricMode === 'translation' }
-    }
-
-    // 只有罗马音时
-    if (!hasTranslation && hasRomaji) {
-      return { text: '音', show: true, active: lyricMode === 'romaji' }
-    }
-
-    // 两者都有时
-    return { text: '译/音', show: true, active: lyricMode !== 'none' }
-  }
-
-  // 切换模式
-  const cycleMode = () => {
-    if (!hasTranslation && !hasRomaji) return
-
-    const modes: LyricMode[] = ['none', 'translation', 'romaji']
-    const currentIndex = modes.indexOf(lyricMode)
-    const nextIndex = (currentIndex + 1) % modes.length
-    setLyricMode(modes[nextIndex])
-  }
-
-  const buttonConfig = getButtonConfig()
+  // 两态按钮：译 / 音
+  // - 仅当对应轨道存在时显示按钮
+  // - 保留 none 状态：再次点击当前已选中的按钮会切回 none
+  const isTranslationActive = lyricMode === 'translation'
+  const isRomajiActive = lyricMode === 'romaji'
 
   return (
     <div className="relative h-full flex flex-col">
-      {/* 智能模式切换按钮 */}
-      {buttonConfig.show && (
-        <div className="flex justify-end px-2 mb-2">
-          <button
-            onClick={cycleMode}
-            className={`px-3 py-1 text-sm rounded transition-all duration-200 ${
-              buttonConfig.active
-                ? 'shadow-md'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-            }`}
-            style={
-              buttonConfig.active
-                ? { backgroundColor: isDark ? lyricTheme.nightProgress : lyricTheme.dayProgress, color: '#fff' }
-                : undefined
-            }
-          >
-            {buttonConfig.text}
-          </button>
+      {/* 模式按钮：悬浮在歌词区域右下角，竖向排列；再次点击已选中 => 无 */}
+      <div className="absolute right-3 bottom-3 z-20">
+        <div className="flex flex-col gap-2">
+          {hasTranslation && (
+            <button
+              type="button"
+              onClick={() => setLyricMode(isTranslationActive ? 'none' : 'translation')}
+              className={`w-9 h-9 text-sm rounded-full transition-all duration-200 flex items-center justify-center ${
+                isTranslationActive
+                  ? 'shadow-md'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+              }`}
+              style={
+                isTranslationActive
+                  ? { backgroundColor: isDark ? lyricColor.nightProgress : lyricColor.dayProgress, color: '#fff' }
+                  : undefined
+              }
+              title="翻译"
+            >
+              译
+            </button>
+          )}
+
+          {hasRomaji && (
+            <button
+              type="button"
+              onClick={() => setLyricMode(isRomajiActive ? 'none' : 'romaji')}
+              className={`w-9 h-9 text-sm rounded-full transition-all duration-200 flex items-center justify-center ${
+                isRomajiActive
+                  ? 'shadow-md'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+              }`}
+              style={
+                isRomajiActive
+                  ? { backgroundColor: isDark ? lyricColor.nightProgress : lyricColor.dayProgress, color: '#fff' }
+                  : undefined
+              }
+              title="罗马音"
+            >
+              音
+            </button>
+          )}
+
+          <ThemeModeButtons
+            mode={mode}
+            toggleMode={toggleMode}
+            progressColor={isDark ? lyricColor.nightProgress : lyricColor.dayProgress}
+          />
         </div>
-      )}
+      </div>
 
       <div
         ref={containerRef}
@@ -275,8 +265,8 @@ export default function LyricScroller() {
             let styleClass = ''
             if (offset === 0) styleClass = 'opacity-100 scale-100 translate-y-0 z-10'
             else if (Math.abs(offset) === 1) styleClass = `opacity-90 scale-95 ${offset > 0 ? 'translate-y-2' : '-translate-y-2'} z-0`
-            else if (Math.abs(offset) === 2) styleClass = `opacity-80 scale-95 ${offset > 0 ? 'translate-y-4' : '-translate-y-4'} z-0`
-            else styleClass = `opacity-70 scale-95 ${offset > 0 ? 'translate-y-6' : '-translate-y-6'} z-0`
+            else if (Math.abs(offset) === 2) styleClass = `opacity-85 scale-95 ${offset > 0 ? 'translate-y-4' : '-translate-y-4'} z-0`
+            else styleClass = `opacity-80 scale-95 ${offset > 0 ? 'translate-y-6' : '-translate-y-6'} z-0`
 
             const originalText = getOriginalText(line)
             const extraText = getExtraTextForLine(line.startTime)
@@ -294,19 +284,19 @@ export default function LyricScroller() {
                 style={{
                   color: (() => {
                     if (!isCurrent) {
-                      return isDark ? lyricTheme.nightOtherText : lyricTheme.dayOtherText
+                      return isDark ? lyricColor.nightUnplayedText : lyricColor.dayUnplayedText
                     }
 
                     // 按“行结构”判断是否为逐行（无逐字时长信息）：
                     // - 只有一个 item
                     // - 或所有 item.duration <= 0
                     // 满足则整行用进度色，表示“已播放颜色”
-                    const isLineLike = line.items.length <= 1 || line.items.every(i => (i.duration ?? 0) <= 0)
+                    const isLineLike = sourceType !== 'yrc'
                     if (isLineLike) {
-                      return isDark ? lyricTheme.nightProgress : lyricTheme.dayProgress
+                      return isDark ? lyricColor.nightPlayedText : lyricColor.dayPlayedText
                     }
 
-                    return isDark ? lyricTheme.nightText : lyricTheme.dayText
+                    return isDark ? lyricColor.nightPlayedText : lyricColor.dayPlayedText
                   })(),
                   filter: isCurrent ? 'drop-shadow(0 2px 8px #60a5fa44)' : undefined,
                 }}
@@ -326,13 +316,33 @@ export default function LyricScroller() {
                   {line.items.map((item, wordIdx) => {
                     const isWordActive = isCurrent && wordIdx === currentWordIndex
                     const isWordPast = isCurrent && wordIdx < currentWordIndex
+
+                    // 逐行歌词（无逐字时长）时，让整行直接用“已播放色”
+                    // 否则走逐字进度的 clipPath 渐变效果
+                    const isLineLike = sourceType !== 'yrc' || line.items.every(it => it.duration <= 0)
+                    if (isLineLike) {
+                      return (
+                        <span
+                          key={wordIdx}
+                          className="select-none"
+                          style={{
+                            color: isCurrent
+                              ? (isDark ? lyricColor.nightPlayedText : lyricColor.dayPlayedText)
+                              : (isDark ? lyricColor.nightUnplayedText : lyricColor.dayUnplayedText),
+                          }}
+                        >
+                          {item.text.replace(/\s+$/g, (m) => '\u00A0'.repeat(m.length))}
+                        </span>
+                      )
+                    }
+
                     const progress = isCurrent ? getWordProgress(line, wordIdx) : 0
-                    const progressColor = isDark ? lyricTheme.nightProgress : lyricTheme.dayProgress
+                    const progressColor = isDark ? lyricColor.nightUnplayedText : lyricColor.dayUnplayedText
 
                     // 互换“已播放/未播放”的视觉：
                     // - 未播放：显示进度色
                     // - 已播放：显示基底色（当前行颜色）
-                    const baseColor = isDark ? lyricTheme.nightText : lyricTheme.dayText
+                    const baseColor = isDark ? lyricColor.nightPlayedText : lyricColor.dayPlayedText
 
                     // 用叠层 + clipPath 实现“单个字从左到右平滑上色”
                     // 不硬编码颜色，全部走 lyricTheme
@@ -373,17 +383,17 @@ export default function LyricScroller() {
                   <div
                     className={`${
                       lyricMode === 'translation'
-                        ? 'text-sm opacity-90 font-normal leading-relaxed'
-                        : 'text-xs opacity-80 italic font-light leading-relaxed'
+                        ? 'text-lg opacity-85 font-medium leading-relaxed'
+                        : 'text-lg opacity-85 font-medium leading-relaxed'
                     } mt-0.5`}
                     style={{
                       color: isCurrent
                         ? isDark
-                          ? lyricTheme.nightOtherText
-                          : lyricTheme.dayOtherText
+                          ? lyricColor.nightPlayedText
+                          : lyricColor.dayPlayedText
                         : isDark
-                          ? lyricTheme.nightOtherText
-                          : lyricTheme.dayOtherText,
+                          ? lyricColor.nightUnplayedText
+                          : lyricColor.dayUnplayedText,
                     }}
                   >
                     {extraText}

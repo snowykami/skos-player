@@ -110,6 +110,49 @@ export function deriveLyricThemeColors(themeColor: string) {
   }
 }
 
+export function getLyricColor(themeColor: string) {
+  // 默认灰色
+  let r = 107
+  let g = 114
+  let b = 128
+
+  if (themeColor.startsWith('rgb')) {
+    const arr = themeColor.match(/\d+/g)
+    if (arr && arr.length >= 3) {
+      r = +arr[0]
+      g = +arr[1]
+      b = +arr[2]
+    }
+  } else if (themeColor.startsWith('#')) {
+    const rgb = hexToRgb(themeColor)
+    if (rgb) {
+      r = rgb.r
+      g = rgb.g
+      b = rgb.b
+    }
+  }
+
+  const [h, s, l] = rgbToHsl(r, g, b)
+
+  const dayPlayedText = hslToHex(h, Math.min(1, s * 1.5), 0.3)
+  const nightPlayedText = hslToHex(h, Math.min(1, s * 1.3), 0.8)
+
+  const dayUnplayedText = hslToHex(h, Math.min(0.6, s * 0.5), 0.50)
+  const nightUnplayedText = hslToHex(h, Math.min(0.6, s * 0.4), 0.55)
+
+  const dayProgress = hslToHex(h, Math.min(0.8, s * 0.8), Math.max(0.6, l * 0.6))
+  const nightProgress = hslToHex(h, Math.min(1, s * 0.6), 0.65)
+
+  return {
+    dayPlayedText,
+    nightPlayedText,
+    dayUnplayedText,
+    nightUnplayedText,
+    dayProgress,
+    nightProgress,
+  }
+}
+
 const DEFAULT_COVER_COLOR = 'rgb(100, 100, 100)'
 
 export async function getAlbumCoverColor(cover: string): Promise<string> {

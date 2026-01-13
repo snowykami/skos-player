@@ -2,11 +2,10 @@ import { useEffect, useRef } from 'react'
 import MusicControls from './MusicControls'
 import PlayerView from './PlayerView'
 import { useMusic } from '@/hooks/useMusic'
-import { useStoredState } from '@/hooks/useStorageState'
 import { useLyric } from '@/hooks/useLyric'
 import { fetchLyric, convertToRawLyricResponse } from '@/utils/lyricApi'
 
-const OVERLAYCOLOR = 'bg-slate-200/55'
+const OVERLAYCOLOR = 'bg-slate-200/60'
 const OVERLAYCOLORDARK = 'dark:bg-slate-800/60'
 
 export default function Music() {

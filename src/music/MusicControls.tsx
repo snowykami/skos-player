@@ -13,6 +13,7 @@ import {
 
 import { fetchPlaylist } from './api'
 import { useMusic } from '@/hooks/useMusic'
+import { useStoredState } from '@/hooks/useStorageState'
 import { deriveLyricThemeColors, getAlbumCoverColor } from './color'
 import type { MusicTrack } from '@/models/music'
 
@@ -27,15 +28,26 @@ export default function MusicControls() {
     seek,
     playMode,
     playTrack,
+    setCurrentIndex,
     replacePlaylist,
     playlist,
     volume,
     setVolume,
     isPlaying,
     setPlayMode,
+    pause,
   } = useMusic()
 
   const [showPlaylist, setShowPlaylist] = useState(false)
+
+  const [persistState, setPersistState, persistLoaded] = useStoredState<{
+    trackId: number | null
+    position: number
+    updatedAt: number
+  }>('music.persist.v1', { trackId: null, position: 0, updatedAt: 0 })
+  const hasRestoredRef = useRef(false)
+  const lastPersistWriteAtRef = useRef(0)
+  const lastPersistPayloadRef = useRef<string>('')
   const playlistRef = useRef<HTMLDivElement>(null)
   const playlistButtonRef = useRef<HTMLButtonElement>(null)
   const playlistItemRefs = useRef<(HTMLLIElement | null)[]>([])
@@ -68,12 +80,84 @@ export default function MusicControls() {
     if (playlist.length > 0) return
     fetchPlaylist()
       .then((tracks) => {
-        replacePlaylist(tracks)
+        const trackId = persistLoaded ? (persistState?.trackId ?? null) : null
+        if (trackId != null) {
+          const idx = tracks.findIndex(t => t.id === trackId)
+          replacePlaylist(tracks, idx >= 0 ? idx : 0)
+        }
+        else {
+          replacePlaylist(tracks)
+        }
       })
       .catch((error) => {
         console.error('Failed to fetch playlist:', error)
       })
-  }, [playlist.length, replacePlaylist])
+  }, [playlist.length, replacePlaylist, persistLoaded, persistState?.trackId])
+
+  const pauseRef = useRef(pause)
+  useEffect(() => {
+    pauseRef.current = pause
+  }, [pause])
+
+  // restore persisted track + position once after playlist & localStorage ready
+  useEffect(() => {
+    if (!persistLoaded) return
+    if (hasRestoredRef.current) return
+    if (playlist.length === 0) return
+
+    const trackId = persistState?.trackId ?? null
+    const position = Number.isFinite(persistState?.position) ? persistState.position : 0
+
+    if (trackId == null) {
+      hasRestoredRef.current = true
+      return
+    }
+
+    const idx = playlist.findIndex(t => t.id === trackId)
+    if (idx < 0) {
+      hasRestoredRef.current = true
+      return
+    }
+
+    // 恢复策略：
+    // - 不自动播放
+    // - 优先 seek；只有当当前曲目不是目标曲目时才切歌
+    if (currentTrack?.id !== trackId) {
+      pauseRef.current()
+      setCurrentIndex(idx)
+      seek(Math.max(0, position))
+      pauseRef.current()
+    }
+    else {
+      seek(Math.max(0, position))
+      pauseRef.current()
+    }
+
+    hasRestoredRef.current = true
+  }, [persistLoaded, playlist.length, persistState?.trackId, persistState?.position, playlist, currentTrack?.id, setCurrentIndex, seek])
+
+  // persist current track + position (throttle 1s)
+  useEffect(() => {
+    if (!persistLoaded) return
+    if (!currentTrack) return
+    if (typeof currentTime !== 'number' || !Number.isFinite(currentTime)) return
+
+    const now = Date.now()
+    if (now - lastPersistWriteAtRef.current < 1000) return
+
+    const payload = {
+      trackId: currentTrack.id ?? null,
+      position: Math.max(0, currentTime),
+      updatedAt: now,
+    }
+
+    const payloadStr = JSON.stringify(payload)
+    if (payloadStr === lastPersistPayloadRef.current) return
+
+    lastPersistWriteAtRef.current = now
+    lastPersistPayloadRef.current = payloadStr
+    setPersistState(payload)
+  }, [persistLoaded, currentTrack?.id, currentTime, setPersistState, currentTrack])
 
   // hotkeys
   useEffect(() => {

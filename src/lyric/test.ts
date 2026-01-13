@@ -199,9 +199,9 @@ function testTranslationParsing() {
 
   const result = parseTranslation(testTranslation);
 
-  console.log(`  解析行数: ${result.length}`);
-  console.log(`  第一行: "${result[0]}"`);
-  console.log(`  第二行: "${result[1]}"`);
+  console.log(`  解析行数: ${result.lines.length}`);
+  console.log(`  第一行: "${result.lines[0]?.items.map(i => i.text).join('') ?? ''}"`);
+  console.log(`  第二行: "${result.lines[1]?.items.map(i => i.text).join('') ?? ''}"`);
 }
 
 function testMetadataParsing() {

@@ -246,7 +246,7 @@ export function parse(rawLyric: RawLyricResponse): LyricParseResult {
     const translation = hasTranslation ? parseTranslation(rawLyric.tlyric!.lyric) : undefined;
     const romaji = hasRomaji ? parseRomaji(rawLyric.romalrc!.lyric) : undefined;
 
-    state = createLyricState('word', yrcResult.data, translation, romaji);
+    state = createLyricState(yrcResult.data, translation, romaji);
     metadata = yrcResult.metadata;
     sourceType = 'yrc';
     isInstrumentalFlag = isInstrumental(yrcResult.data);
@@ -255,11 +255,11 @@ export function parse(rawLyric: RawLyricResponse): LyricParseResult {
     const translation = hasTranslation ? parseTranslation(rawLyric.tlyric!.lyric) : undefined;
     const romaji = hasRomaji ? parseRomaji(rawLyric.romalrc!.lyric) : undefined;
 
-    state = createLyricState('line', lrcData, translation, romaji);
+    state = createLyricState(lrcData, translation, romaji);
     sourceType = 'lrc';
     isInstrumentalFlag = isInstrumental(lrcData);
   } else {
-    state = createLyricState('line', { type: 'line', lines: [] }, undefined, undefined);
+    state = createLyricState({ type: 'line', lines: [] }, undefined, undefined);
     isInstrumentalFlag = true;
   }
 
@@ -270,7 +270,6 @@ export function parse(rawLyric: RawLyricResponse): LyricParseResult {
  * 创建歌词状态
  */
 function createLyricState(
-  type: LyricType,
   lyricData: LyricData,
   translation?: LyricData,
   romaji?: LyricData
