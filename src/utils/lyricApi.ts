@@ -2,62 +2,62 @@
  * 歌词 API 封装
  */
 
-import type { RawLyricResponse } from '@/lyric/types';
+import type { RawLyricResponse } from '@/lyric/types'
 
-const LYRIC_API_BASE = 'https://ncm-api.sfkm.me/lyric';
+const LYRIC_API_BASE = 'https://ncm-api.sfkm.me/lyric'
 
 /**
  * 歌词 API 响应格式
  */
 export interface LyricApiResponse {
-  sgc: boolean;
-  sfy: boolean;
-  qfy: boolean;
+  sgc: boolean
+  sfy: boolean
+  qfy: boolean
   transUser: {
-    id: number;
-    status: number;
-    demand: number;
-    userid: number;
-    nickname: string;
-    uptime: number;
-  };
+    id: number
+    status: number
+    demand: number
+    userid: number
+    nickname: string
+    uptime: number
+  }
   lyricUser: {
-    id: number;
-    status: number;
-    demand: number;
-    userid: number;
-    nickname: string;
-    uptime: number;
-  };
+    id: number
+    status: number
+    demand: number
+    userid: number
+    nickname: string
+    uptime: number
+  }
   lrc: {
-    version: number;
-    lyric: string;
-  } | null;
+    version: number
+    lyric: string
+  } | null
   klyric: {
-    version: number;
-    lyric: string;
-  } | null;
+    version: number
+    lyric: string
+  } | null
   tlyric: {
-    version: number;
-    lyric: string;
-  } | null;
+    version: number
+    lyric: string
+  } | null
   romalrc: {
-    version: number;
-    lyric: string;
-  } | null;
+    version: number
+    lyric: string
+  } | null
   yrc: {
-    version: number;
-    lyric: string;
-  } | null;
+    version: number
+    lyric: string
+  } | null
   ytlrc: {
-    version: number;
-    lyric: string;
-  } | null;
+    version: number
+    lyric: string
+  } | null
   yromalrc: {
-    version: number;
-    lyric: string;
-  } | null;
-  code: number;
+    version: number
+    lyric: string
+  } | null
+  code: number
 }
 
 /**
@@ -66,13 +66,13 @@ export interface LyricApiResponse {
  * @returns 歌词 API 响应
  */
 export async function fetchLyric(songId: number | string): Promise<LyricApiResponse> {
-  const response = await fetch(`${LYRIC_API_BASE}/new?id=${songId}`);
+  const response = await fetch(`${LYRIC_API_BASE}/new?id=${songId}`)
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch lyric: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to fetch lyric: ${response.status} ${response.statusText}`)
   }
 
-  return response.json();
+  return response.json()
 }
 
 /**
@@ -88,7 +88,7 @@ export function convertToRawLyricResponse(apiResponse: LyricApiResponse): RawLyr
     yrc: apiResponse.yrc ?? undefined,
     ytlrc: apiResponse.ytlrc ?? undefined,
     yromalrc: apiResponse.yromalrc ?? undefined,
-  };
+  }
 }
 
 /**
@@ -97,7 +97,7 @@ export function convertToRawLyricResponse(apiResponse: LyricApiResponse): RawLyr
  * @returns 解析后的歌词数据
  */
 export async function fetchAndParseLyric(songId: number | string) {
-  const apiResponse = await fetchLyric(songId);
-  const rawLyric = convertToRawLyricResponse(apiResponse);
-  return rawLyric;
+  const apiResponse = await fetchLyric(songId)
+  const rawLyric = convertToRawLyricResponse(apiResponse)
+  return rawLyric
 }

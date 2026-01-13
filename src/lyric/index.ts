@@ -2,45 +2,45 @@
  * Lyric Lib - 入口文件
  */
 
-// 类型导出
-export type {
-  LyricType,
-  MetadataType,
-  LyricMetadata,
-  LyricItem,
-  LyricLine,
-  LyricData,
-  LyricTrack,
-  LyricState,
-  LyricParseResult,
-  RawLyricResponse,
-} from './types';
-
 // 解析器函数
 export {
-  parseLrc,
-  parseYrc,
-  parseTranslation,
-  parseRomaji,
-  parse,
-  timeToMs,
-  msToTime,
   isInstrumental,
   isMetadataLine,
-} from './parse';
+  msToTime,
+  parse,
+  parseLrc,
+  parseRomaji,
+  parseTranslation,
+  parseYrc,
+  timeToMs,
+} from './parse'
 
 // 播放器同步接口
 export {
-  syncByTime,
   getCurrentLineIndex,
   getCurrentLyrics,
-  getHighlightProgress,
-  toggleTrack,
-  getLineWordTimings,
   getHighlightedWordIndices,
+  getHighlightProgress,
   getKaraokeProgress,
-  seekToLine,
-  seekToTime,
+  getLineWordTimings,
   getNextLineInfo,
   getPreviousLineInfo,
-} from './sync';
+  seekToLine,
+  seekToTime,
+  syncByTime,
+  toggleTrack,
+} from './sync'
+
+// 类型导出
+export type {
+  LyricData,
+  LyricItem,
+  LyricLine,
+  LyricMetadata,
+  LyricParseResult,
+  LyricState,
+  LyricTrack,
+  LyricType,
+  MetadataType,
+  RawLyricResponse,
+} from './types'

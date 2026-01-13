@@ -1,4 +1,3 @@
-
 import type { MusicTrack } from '@/models/music'
 import React, {
   createContext,
@@ -384,7 +383,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
           ms.metadata = null
         }
-        catch { 
+        catch {
           console.warn('MediaSession metadata clear failed')
         }
         ms.playbackState = 'none'
@@ -410,7 +409,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         catch {
           console.warn('MediaSession metadata set failed')
-         }
+        }
       }
       ms.playbackState = isPlaying ? 'playing' : 'paused'
     }
@@ -451,7 +450,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           })
         }
       }
-      catch { 
+      catch {
         console.warn('MediaSession setPositionState failed')
       }
     }
@@ -468,7 +467,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ms.setActionHandler('nexttrack', null)
         ms.setActionHandler('seekto', null)
       }
-      catch { 
+      catch {
         // 某些浏览器/环境对 setActionHandler 有限制
       }
     }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { MusicTrack } from '@/models/music'
 import {
   ListMusic,
   Pause,
@@ -11,11 +11,11 @@ import {
   Volume2,
 } from 'lucide-react'
 
-import { fetchPlaylist } from './api'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMusic } from '@/hooks/useMusic'
 import { useStoredState } from '@/hooks/useStorageState'
+import { fetchPlaylist } from './api'
 import { deriveLyricThemeColors, getAlbumCoverColor } from './color'
-import type { MusicTrack } from '@/models/music'
 
 export default function MusicControls() {
   const {
@@ -66,7 +66,8 @@ export default function MusicControls() {
   useEffect(() => {
     let mounted = true
     getAlbumCoverColor(currentTrack?.albumPic || '').then((color) => {
-      if (!mounted) return
+      if (!mounted)
+        return
       const derived = deriveLyricThemeColors(color)
       setProgressTheme({ day: derived.dayProgress, night: derived.nightProgress })
     })
@@ -77,7 +78,8 @@ export default function MusicControls() {
 
   // load playlist once
   useEffect(() => {
-    if (playlist.length > 0) return
+    if (playlist.length > 0)
+      return
     fetchPlaylist()
       .then((tracks) => {
         const trackId = persistLoaded ? (persistState?.trackId ?? null) : null
@@ -101,9 +103,12 @@ export default function MusicControls() {
 
   // restore persisted track + position once after playlist & localStorage ready
   useEffect(() => {
-    if (!persistLoaded) return
-    if (hasRestoredRef.current) return
-    if (playlist.length === 0) return
+    if (!persistLoaded)
+      return
+    if (hasRestoredRef.current)
+      return
+    if (playlist.length === 0)
+      return
 
     const trackId = persistState?.trackId ?? null
     const position = Number.isFinite(persistState?.position) ? persistState.position : 0
@@ -138,12 +143,16 @@ export default function MusicControls() {
 
   // persist current track + position (throttle 1s)
   useEffect(() => {
-    if (!persistLoaded) return
-    if (!currentTrack) return
-    if (typeof currentTime !== 'number' || !Number.isFinite(currentTime)) return
+    if (!persistLoaded)
+      return
+    if (!currentTrack)
+      return
+    if (typeof currentTime !== 'number' || !Number.isFinite(currentTime))
+      return
 
     const now = Date.now()
-    if (now - lastPersistWriteAtRef.current < 1000) return
+    if (now - lastPersistWriteAtRef.current < 1000)
+      return
 
     const payload = {
       trackId: currentTrack.id ?? null,
@@ -152,7 +161,8 @@ export default function MusicControls() {
     }
 
     const payloadStr = JSON.stringify(payload)
-    if (payloadStr === lastPersistPayloadRef.current) return
+    if (payloadStr === lastPersistPayloadRef.current)
+      return
 
     lastPersistWriteAtRef.current = now
     lastPersistPayloadRef.current = payloadStr
@@ -183,28 +193,30 @@ export default function MusicControls() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        playlistRef.current &&
-        !playlistRef.current.contains(event.target as Node) &&
-        playlistButtonRef.current &&
-        !playlistButtonRef.current.contains(event.target as Node)
+        playlistRef.current
+        && !playlistRef.current.contains(event.target as Node)
+        && playlistButtonRef.current
+        && !playlistButtonRef.current.contains(event.target as Node)
       ) {
         setShowPlaylist(false)
       }
     }
 
-    if (showPlaylist) document.addEventListener('mousedown', handleClickOutside)
+    if (showPlaylist)
+      document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showPlaylist])
 
   // click outside to close volume
   useEffect(() => {
-    if (!showVolume) return
+    if (!showVolume)
+      return
     const handleClick = (e: MouseEvent) => {
       if (
-        volumePopupRef.current &&
-        !volumePopupRef.current.contains(e.target as Node) &&
-        volumeBtnRef.current &&
-        !volumeBtnRef.current.contains(e.target as Node)
+        volumePopupRef.current
+        && !volumePopupRef.current.contains(e.target as Node)
+        && volumeBtnRef.current
+        && !volumeBtnRef.current.contains(e.target as Node)
       ) {
         setShowVolume(false)
       }
@@ -216,7 +228,8 @@ export default function MusicControls() {
   // scroll detect
   useEffect(() => {
     const el = playlistRef.current
-    if (!el || !showPlaylist) return
+    if (!el || !showPlaylist)
+      return
 
     const mark = () => setUserScrolled(true)
     el.addEventListener('wheel', mark, { passive: true })
@@ -231,39 +244,48 @@ export default function MusicControls() {
   }, [showPlaylist])
 
   function formatTime(sec: number) {
-    if (!Number.isFinite(sec)) return '00:00'
+    if (!Number.isFinite(sec))
+      return '00:00'
     const m = Math.floor(sec / 60)
     const s = Math.floor(sec % 60)
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
   const filteredTracksList = useMemo<MusicTrack[]>(() => {
-    if (!playlist) return []
-    if (!playlistSearch.trim()) return playlist
+    if (!playlist)
+      return []
+    if (!playlistSearch.trim())
+      return playlist
     const keywords = playlistSearch.trim().toLowerCase().split(/\s+/)
     return playlist.filter((track) => {
       const text = `${track.name || ''} ${track.artists || ''} ${track.album || ''}`.toLowerCase()
-      return keywords.every((kw) => text.includes(kw))
+      return keywords.every(kw => text.includes(kw))
     })
   }, [playlist, playlistSearch])
 
   const playModeIcon = (() => {
-    if (playMode === 'shuffle') return <Shuffle className="w-5 h-5" />
-    if (playMode === 'repeat-one') return <Repeat1 className="w-5 h-5" />
+    if (playMode === 'shuffle')
+      return <Shuffle className="w-5 h-5" />
+    if (playMode === 'repeat-one')
+      return <Repeat1 className="w-5 h-5" />
     return <Repeat className="w-5 h-5 rotate-0" />
   })()
 
   const playModeText = (() => {
-    if (playMode === 'shuffle') return '随机'
-    if (playMode === 'repeat-one') return '单曲循环'
+    if (playMode === 'shuffle')
+      return '随机'
+    if (playMode === 'repeat-one')
+      return '单曲循环'
     return '列表循环'
   })()
 
   const scrollToCurrentSong = useCallback(() => {
-    if (!showPlaylist || !playlist || !currentTrack) return
+    if (!showPlaylist || !playlist || !currentTrack)
+      return
 
-    const currentIdx = playlist.findIndex((song) => song.id === currentTrack.id)
-    if (currentIdx === -1) return
+    const currentIdx = playlist.findIndex(song => song.id === currentTrack.id)
+    if (currentIdx === -1)
+      return
 
     const container = playlistRef.current
     const target = playlistItemRefs.current[currentIdx]
@@ -345,14 +367,16 @@ export default function MusicControls() {
           <button
             className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition flex items-center gap-1"
             onClick={() =>
-              setPlayMode(playMode === 'repeat-all' ? 'repeat-one' : playMode === 'repeat-one' ? 'shuffle' : 'repeat-all')
-            }
+              setPlayMode(playMode === 'repeat-all' ? 'repeat-one' : playMode === 'repeat-one' ? 'shuffle' : 'repeat-all')}
             title={playModeText}
           >
             {playModeIcon}
           </button>
           <span className="text-xs text-gray-600 dark:text-gray-400 font-mono select-none tabular-nums">
-            {formatTime(currentTime || 0)} / {formatTime(duration || 0)}
+            {formatTime(currentTime || 0)}
+            {' '}
+            /
+            {formatTime(duration || 0)}
           </span>
         </div>
 
@@ -385,7 +409,7 @@ export default function MusicControls() {
             ref={volumeBtnRef}
             className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
             title="音量"
-            onClick={() => setShowVolume((v) => !v)}
+            onClick={() => setShowVolume(v => !v)}
           >
             <Volume2 className="w-5 h-5 text-gray-700 dark:text-gray-200" />
           </button>
@@ -404,7 +428,10 @@ export default function MusicControls() {
                 className="h-28 w-2 accent-blue-500 cursor-pointer"
                 style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
               />
-              <div className="text-xs mt-2 text-gray-700 dark:text-gray-200 select-none">{(volume * 100) | 0}%</div>
+              <div className="text-xs mt-2 text-gray-700 dark:text-gray-200 select-none">
+                {(volume * 100) | 0}
+                %
+              </div>
             </div>
           )}
 
@@ -430,45 +457,54 @@ export default function MusicControls() {
                 <input
                   type="text"
                   value={playlistSearch}
-                  onChange={(e) => setPlaylistSearch(e.target.value)}
+                  onChange={e => setPlaylistSearch(e.target.value)}
                   placeholder="搜索歌曲/歌手/专辑"
                   className="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 text-sm outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
 
-              {filteredTracksList === null ? (
-                <div className="p-2 text-center text-gray-500 dark:text-gray-400">加载中...</div>
-              ) : filteredTracksList.length === 0 ? (
-                <div className="p-2 text-center text-gray-500 dark:text-gray-400">没有结果</div>
-              ) : (
-                <ul>
-                  {filteredTracksList.map((song, index) => {
-                    const isCurrentSong = song.audio === currentTrack?.audio
-                    const origIdx = playlist?.findIndex((s) => s.id === song.id) ?? -1
-
-                    return (
-                      <li
-                        key={song.id || index}
-                        ref={(el) => {
-                          if (origIdx >= 0) playlistItemRefs.current[origIdx] = el
-                        }}
-                        onClick={() => {
-                          if (origIdx >= 0) playTrack(origIdx)
-                        }}
-                        className={`p-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                          isCurrentSong
-                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                            : 'text-gray-800 dark:text-gray-200'
-                        }`}
-                      >
-                        <div className="truncate">
-                          {song.name || '无标题'} - {song.artists.join('/') || '未知歌手'}
-                        </div>
-                      </li>
+              {filteredTracksList === null
+                ? (
+                    <div className="p-2 text-center text-gray-500 dark:text-gray-400">加载中...</div>
+                  )
+                : filteredTracksList.length === 0
+                  ? (
+                      <div className="p-2 text-center text-gray-500 dark:text-gray-400">没有结果</div>
                     )
-                  })}
-                </ul>
-              )}
+                  : (
+                      <ul>
+                        {filteredTracksList.map((song, index) => {
+                          const isCurrentSong = song.audio === currentTrack?.audio
+                          const origIdx = playlist?.findIndex(s => s.id === song.id) ?? -1
+
+                          return (
+                            <li
+                              key={song.id || index}
+                              ref={(el) => {
+                                if (origIdx >= 0)
+                                  playlistItemRefs.current[origIdx] = el
+                              }}
+                              onClick={() => {
+                                if (origIdx >= 0)
+                                  playTrack(origIdx)
+                              }}
+                              className={`p-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                                isCurrentSong
+                                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                                  : 'text-gray-800 dark:text-gray-200'
+                              }`}
+                            >
+                              <div className="truncate">
+                                {song.name || '无标题'}
+                                {' '}
+                                -
+                                {song.artists.join('/') || '未知歌手'}
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
             </div>
           )}
         </div>

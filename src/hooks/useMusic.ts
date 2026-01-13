@@ -1,8 +1,10 @@
+import type { MusicContextValue } from '@/contexts/MusicContext'
 /**
  * useMusic hook - 从 MusicContext 获取播放状态
  */
 import { useContext } from 'react'
-import { MusicContext, type MusicContextValue } from '@/contexts/MusicContext'
+import { MusicContext } from '@/contexts/MusicContext'
+
 export { MusicContext }
 
 export function useMusic(): MusicContextValue {

@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
+import { useLyric } from '@/hooks/useLyric'
+import { useMusic } from '@/hooks/useMusic'
+import { convertToRawLyricResponse, fetchLyric } from '@/utils/lyricApi'
 import MusicControls from './MusicControls'
 import PlayerView from './PlayerView'
-import { useMusic } from '@/hooks/useMusic'
-import { useLyric } from '@/hooks/useLyric'
-import { fetchLyric, convertToRawLyricResponse } from '@/utils/lyricApi'
 
 const OVERLAYCOLOR = 'bg-slate-200/60'
 const OVERLAYCOLORDARK = 'dark:bg-slate-800/60'
@@ -18,9 +18,11 @@ export default function Music() {
 
   // 更新页面标题
   useEffect(() => {
-    if (!currentTrack) return
+    if (!currentTrack)
+      return
     const title = currentTrack.name || 'Music Player'
-    if (lastSongTitleRef.current === title) return
+    if (lastSongTitleRef.current === title)
+      return
     document.title = `${title} - ${currentTrack.artists?.join(', ') || 'Music Player'}`
     lastSongTitleRef.current = title
   }, [currentTrack])
@@ -47,7 +49,8 @@ export default function Music() {
 
     const lyricId = (currentTrack as { lyricId?: number }).lyricId ?? currentTrack.id
 
-    if (lastLyricIdRef.current === lyricId) return
+    if (lastLyricIdRef.current === lyricId)
+      return
 
     const loadLyricAsync = async () => {
       try {
@@ -56,7 +59,8 @@ export default function Music() {
           const rawLyric = convertToRawLyricResponse(apiResponse)
           loadLyric(rawLyric)
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to load lyric:', error)
         clearLyric()
       }

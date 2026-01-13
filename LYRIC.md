@@ -149,30 +149,30 @@ yromalrc → romalrc
 /**
  * 歌词类型
  */
-export type LyricType = 'line' | 'word';
+export type LyricType = 'line' | 'word'
 
 /**
  * 元数据类型
  */
-export type MetadataType =
-  | 'lyrics_info'    // 作词、作曲、编曲等信息
-  | 'production'     // 制作人员信息
-  | 'other';         // 其他元数据
+export type MetadataType
+  = | 'lyrics_info' // 作词、作曲、编曲等信息
+    | 'production' // 制作人员信息
+    | 'other' // 其他元数据
 
 /**
  * 元数据项
  */
 export interface LyricMetadata {
   /** 元数据类型 */
-  type: MetadataType;
+  type: MetadataType
   /** 出现时间（毫秒） */
-  time: number;
+  time: number
   /** 元数据文本内容 */
-  text: string;
+  text: string
   /** 附加图片链接（可选） */
-  imageUrl?: string;
+  imageUrl?: string
   /** Orpheus链接（可选） */
-  orpheusUrl?: string;
+  orpheusUrl?: string
 }
 
 /**
@@ -180,11 +180,11 @@ export interface LyricMetadata {
  */
 export interface LyricItem {
   /** 内容文本 */
-  text: string;
+  text: string
   /** 开始时间（毫秒） */
-  startTime: number;
+  startTime: number
   /** 持续时间（毫秒） */
-  duration: number;
+  duration: number
 }
 
 /**
@@ -192,13 +192,13 @@ export interface LyricItem {
  */
 export interface LyricLine {
   /** 该行歌词的所有内容项 */
-  items: LyricItem[];
+  items: LyricItem[]
   /** 行开始时间（取第一个item的startTime） */
-  startTime: number;
+  startTime: number
   /** 行持续时间（取最后一个item的endTime - 第一个item的startTime） */
-  duration: number;
+  duration: number
   /** 原始文本（用于回退/调试） */
-  originalText: string;
+  originalText: string
 }
 
 /**
@@ -206,13 +206,13 @@ export interface LyricLine {
  */
 export interface LyricData {
   /** 原始类型：'line' | 'word' */
-  type: LyricType;
+  type: LyricType
   /** 歌词行列表（仅实际歌词，不含元数据） */
-  lines: LyricLine[];
+  lines: LyricLine[]
   /** 翻译歌词（可选） */
-  translation?: string[];
+  translation?: string[]
   /** 罗马音歌词（可选） */
-  romaji?: string[];
+  romaji?: string[]
 }
 
 /**
@@ -220,11 +220,11 @@ export interface LyricData {
  */
 export interface LyricTrack {
   /** 轨类型 */
-  type: 'original' | 'translation' | 'romaji';
+  type: 'original' | 'translation' | 'romaji'
   /** 歌词数据 */
-  data: LyricData;
+  data: LyricData
   /** 是否启用 */
-  enabled: boolean;
+  enabled: boolean
 }
 
 /**
@@ -232,15 +232,15 @@ export interface LyricTrack {
  */
 export interface LyricState {
   /** 当前播放时间（毫秒） */
-  currentTime: number;
+  currentTime: number
   /** 当前高亮的行索引 */
-  currentLineIndex: number;
+  currentLineIndex: number
   /** 当前高亮的字索引（在当前行内） */
-  currentWordIndex: number;
+  currentWordIndex: number
   /** 所有歌词轨 */
-  tracks: LyricTrack[];
+  tracks: LyricTrack[]
   /** 是否正在播放 */
-  isPlaying: boolean;
+  isPlaying: boolean
 }
 
 /**
@@ -248,25 +248,25 @@ export interface LyricState {
  */
 export interface LyricParseResult {
   /** 歌词状态（用于播放） */
-  state: LyricState;
+  state: LyricState
   /** 提取的元数据列表 */
-  metadata: LyricMetadata[];
+  metadata: LyricMetadata[]
   /** 是否为纯音乐/无人声 */
-  isInstrumental: boolean;
+  isInstrumental: boolean
   /** 原始歌词类型 */
-  sourceType: 'yrc' | 'lrc' | 'none';
+  sourceType: 'yrc' | 'lrc' | 'none'
 }
 
 /**
  * 原始API响应（简化版）
  */
 export interface RawLyricResponse {
-  lrc?: { lyric: string; version: number };
-  tlyric?: { lyric: string; version: number };
-  romalrc?: { lyric: string; version: number };
-  yrc?: { lyric: string; version: number };
-  ytlrc?: { lyric: string; version: number };
-  yromalrc?: { lyric: string; version: number };
+  lrc?: { lyric: string, version: number }
+  tlyric?: { lyric: string, version: number }
+  romalrc?: { lyric: string, version: number }
+  yrc?: { lyric: string, version: number }
+  ytlrc?: { lyric: string, version: number }
+  yromalrc?: { lyric: string, version: number }
 }
 ```
 
@@ -280,35 +280,35 @@ export interface RawLyricResponse {
  * @param lrcText lrc格式歌词文本
  * @returns 解析后的LyricData
  */
-export function parseLrc(lrcText: string): LyricData;
+export function parseLrc(lrcText: string): LyricData
 
 /**
  * 解析网易云逐字歌词
  * @param yrcText yrc格式歌词文本
  * @returns 解析后的LyricData + 元数据数组
  */
-export function parseYrc(yrcText: string): { data: LyricData; metadata: LyricMetadata[] };
+export function parseYrc(yrcText: string): { data: LyricData, metadata: LyricMetadata[] }
 
 /**
  * 解析翻译歌词
  * @param tlyricText 翻译歌词文本（带〖〗）
  * @returns 翻译文本数组
  */
-export function parseTranslation(tlyricText: string): string[];
+export function parseTranslation(tlyricText: string): string[]
 
 /**
  * 解析罗马音歌词
  * @param romalrcText 罗马音歌词文本
  * @returns 罗马音文本数组
  */
-export function parseRomaji(romalrcText: string): string[];
+export function parseRomaji(romalrcText: string): string[]
 
 /**
  * 统一解析接口（自动选择最佳格式，处理fallback）
  * @param rawLyric 原始歌词数据对象
  * @returns 完整的解析结果
  */
-export function parse(rawLyric: RawLyricResponse): LyricParseResult;
+export function parse(rawLyric: RawLyricResponse): LyricParseResult
 ```
 
 ### 播放器同步接口
@@ -320,7 +320,7 @@ export function parse(rawLyric: RawLyricResponse): LyricParseResult;
  * @param currentTime 当前播放时间（毫秒）
  * @returns 更新后的当前行/字索引
  */
-export function syncByTime(state: LyricState, currentTime: number): LyricState['currentLineIndex'];
+export function syncByTime(state: LyricState, currentTime: number): LyricState['currentLineIndex']
 
 /**
  * 获取当前时间对应的所有轨道的歌词内容
@@ -329,10 +329,10 @@ export function syncByTime(state: LyricState, currentTime: number): LyricState['
  * @returns 各轨道当前内容
  */
 export function getCurrentLyrics(state: LyricState, currentTime: number): {
-  original?: string;
-  translation?: string;
-  romaji?: string;
-};
+  original?: string
+  translation?: string
+  romaji?: string
+}
 
 /**
  * 获取当前行的高亮进度（用于卡拉OK效果）
@@ -340,7 +340,7 @@ export function getCurrentLyrics(state: LyricState, currentTime: number): {
  * @param currentTime 当前播放时间
  * @returns 0-1之间的进度值
  */
-export function getHighlightProgress(state: LyricState, currentTime: number): number;
+export function getHighlightProgress(state: LyricState, currentTime: number): number
 
 /**
  * 切换轨道启用状态
@@ -349,7 +349,7 @@ export function getHighlightProgress(state: LyricState, currentTime: number): nu
  * @param enabled 是否启用
  * @returns 更新后的状态
  */
-export function toggleTrack(state: LyricState, trackType: LyricTrack['type'], enabled: boolean): LyricState;
+export function toggleTrack(state: LyricState, trackType: LyricTrack['type'], enabled: boolean): LyricState
 
 /**
  * 获取当前行的所有字的时间信息（用于逐字卡拉OK）
@@ -357,7 +357,7 @@ export function toggleTrack(state: LyricState, trackType: LyricTrack['type'], en
  * @param lineIndex 行索引
  * @returns 该行所有字的时间信息数组
  */
-export function getLineWordTimings(state: LyricState, lineIndex: number): LyricItem[];
+export function getLineWordTimings(state: LyricState, lineIndex: number): LyricItem[]
 ```
 
 ### 工具函数
@@ -368,28 +368,28 @@ export function getLineWordTimings(state: LyricState, lineIndex: number): LyricI
  * @param timeStr 格式：mm:ss.xx 或 [mm:ss.xx]
  * @returns 毫秒数
  */
-export function timeToMs(timeStr: string): number;
+export function timeToMs(timeStr: string): number
 
 /**
  * 毫秒转时间字符串
  * @param ms 毫秒数
  * @returns 格式：mm:ss
  */
-export function msToTime(ms: number): string;
+export function msToTime(ms: number): string
 
 /**
  * 检查歌词是否为空（仅含元数据或纯空白）
  * @param lyricData 歌词数据
  * @returns 是否为纯音乐/无人声
  */
-export function isInstrumental(lyricData: LyricData): boolean;
+export function isInstrumental(lyricData: LyricData): boolean
 
 /**
  * 判断是否为元数据行（极短时长的连续文字）
  * @param line 歌词行
  * @returns 是否为元数据行
  */
-export function isMetadataLine(line: LyricLine): boolean;
+export function isMetadataLine(line: LyricLine): boolean
 ```
 
 ## 内部辅助函数
@@ -400,7 +400,7 @@ export function isMetadataLine(line: LyricLine): boolean;
  * @param jsonStr JSON字符串
  * @returns 解析后的元数据
  */
-function parseMetadataJson(jsonStr: string): LyricMetadata[];
+function parseMetadataJson(jsonStr: string): LyricMetadata[]
 
 /**
  * 检测并过滤元数据行
@@ -408,45 +408,46 @@ function parseMetadataJson(jsonStr: string): LyricMetadata[];
  * @returns 过滤后的纯歌词行 + 检测到的元数据行
  */
 function filterMetadataLines(lines: LyricLine[]): {
-  lyrics: LyricLine[];
-  metadata: LyricLine[];
-};
+  lyrics: LyricLine[]
+  metadata: LyricLine[]
+}
 ```
 
 ## 使用示例
 
 ```typescript
-import { parse, syncByTime, getCurrentLyrics, getHighlightProgress, isInstrumental } from './lyric';
+import { getCurrentLyrics, getHighlightProgress, isInstrumental, parse, syncByTime } from './lyric'
 
 // 1. 解析歌词（自动fallback）
-const rawLyric = { /* 从API获取的原始数据 */ };
-const result = parse(rawLyric);
+const rawLyric = { /* 从API获取的原始数据 */ }
+const result = parse(rawLyric)
 
 // 检查是否为纯音乐
 if (result.isInstrumental) {
-  console.log('纯音乐/无人声歌词');
-} else {
-  console.log('解析来源:', result.sourceType); // 'yrc' | 'lrc' | 'none'
-  console.log('元数据数量:', result.metadata.length);
+  console.log('纯音乐/无人声歌词')
+}
+else {
+  console.log('解析来源:', result.sourceType) // 'yrc' | 'lrc' | 'none'
+  console.log('元数据数量:', result.metadata.length)
 }
 
 // 2. 播放器同步（每帧调用）
 function onTimeUpdate(currentTime: number) {
-  const state = result.state;
-  const lineIndex = syncByTime(state, currentTime);
-  const currentLyrics = getCurrentLyrics(state, currentTime);
-  const progress = getHighlightProgress(state, currentTime);
+  const state = result.state
+  const lineIndex = syncByTime(state, currentTime)
+  const currentLyrics = getCurrentLyrics(state, currentTime)
+  const progress = getHighlightProgress(state, currentTime)
 
-  console.log('当前行:', lineIndex);
-  console.log('原文:', currentLyrics.original);
-  console.log('翻译:', currentLyrics.translation);
-  console.log('罗马音:', currentLyrics.romaji);
-  console.log('卡拉OK进度:', `${(progress * 100).toFixed(1)}%`);
+  console.log('当前行:', lineIndex)
+  console.log('原文:', currentLyrics.original)
+  console.log('翻译:', currentLyrics.translation)
+  console.log('罗马音:', currentLyrics.romaji)
+  console.log('卡拉OK进度:', `${(progress * 100).toFixed(1)}%`)
 }
 
 // 3. 切换轨道
-const newState = toggleTrack(state, 'translation', true);
-const romajiState = toggleTrack(state, 'romaji', true);
+const newState = toggleTrack(state, 'translation', true)
+const romajiState = toggleTrack(state, 'romaji', true)
 ```
 
 ## 规范

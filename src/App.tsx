@@ -1,9 +1,9 @@
-import { MusicProvider } from '@/contexts/MusicContext'
-import { LyricProvider } from '@/contexts/LyricContext'
-import Music from '@/music/Music'
-
-import { useEffect } from 'react'
 import type { CSSProperties } from 'react'
+import { useEffect } from 'react'
+import { LyricProvider } from '@/contexts/LyricContext'
+
+import { MusicProvider } from '@/contexts/MusicContext'
+import Music from '@/music/Music'
 import { DeviceProvider } from './contexts/DeviceContext'
 
 const dragStyle = { WebkitAppRegion: 'drag' } as CSSProperties & {
@@ -36,10 +36,14 @@ function App() {
       const bottom = y >= h - thresholdPx
 
       let cursor = ''
-      if ((left && top) || (right && bottom)) cursor = 'nwse-resize'
-      else if ((right && top) || (left && bottom)) cursor = 'nesw-resize'
-      else if (left || right) cursor = 'ew-resize'
-      else if (top || bottom) cursor = 'ns-resize'
+      if ((left && top) || (right && bottom))
+        cursor = 'nwse-resize'
+      else if ((right && top) || (left && bottom))
+        cursor = 'nesw-resize'
+      else if (left || right)
+        cursor = 'ew-resize'
+      else if (top || bottom)
+        cursor = 'ns-resize'
 
       setCursor(cursor)
     }
@@ -60,7 +64,7 @@ function App() {
       <MusicProvider>
         <LyricProvider>
           <DeviceProvider>
-          <Music />
+            <Music />
           </DeviceProvider>
         </LyricProvider>
       </MusicProvider>

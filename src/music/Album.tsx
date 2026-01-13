@@ -4,14 +4,19 @@ import { useMusic } from '@/hooks/useMusic'
 const MIN_DIAMETER = 120
 const MAX_DIAMETER = 300
 
-export function Album() {
+export type AlbumProps = {
+  onClick?: () => void
+}
+
+export function Album({ onClick }: AlbumProps) {
   const { currentTrack, rotateDeg, isPlaying, currentIndex, playlist } = useMusic()
   const containerRef = useRef<HTMLDivElement>(null)
   const [diameter, setDiameter] = useState(200)
 
   // preload next cover + audio
   useEffect(() => {
-    if (playlist.length === 0) return
+    if (playlist.length === 0)
+      return
     const nextIndex = ((currentIndex || 0) + 1) % playlist.length
     const nextTrack = playlist[nextIndex]
 
@@ -40,7 +45,8 @@ export function Album() {
 
     updateDiameter()
     const parent = containerRef.current?.parentElement
-    if (!parent) return
+    if (!parent)
+      return
 
     const observer = new window.ResizeObserver(updateDiameter)
     observer.observe(parent)
@@ -66,6 +72,19 @@ export function Album() {
       ref={containerRef}
       className="relative flex items-center justify-center mx-auto"
       style={{ width: diameter, height: diameter }}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
     >
       <div
         className="absolute left-0 top-0 flex items-center justify-center rounded-full shadow-xl"

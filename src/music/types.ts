@@ -12,4 +12,4 @@ export interface MusicTrack {
 
 export type PlayMode = 'repeat-all' | 'repeat-one' | 'shuffle'
 
-export type LyricLine = { time: number; text: string }
+export interface LyricLine { time: number, text: string }

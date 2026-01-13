@@ -24,7 +24,7 @@ cd skos-player/src/lyric
 ## 快速开始
 
 ```typescript
-import { parse, syncByTime, getCurrentLyrics, getKaraokeProgress } from './lyric';
+import { getCurrentLyrics, getKaraokeProgress, parse, syncByTime } from './lyric'
 
 // 1. 从网易云API获取歌词数据
 const rawLyricResponse = {
@@ -34,37 +34,38 @@ const rawLyricResponse = {
   yrc: null,
   ytlrc: null,
   yromalrc: null,
-};
+}
 
 // 2. 解析歌词
-const result = parse(rawLyricResponse);
+const result = parse(rawLyricResponse)
 
 // 3. 检查是否为纯音乐
 if (result.isInstrumental) {
-  console.log('纯音乐，无歌词');
-} else {
-  console.log(`解析来源：${result.sourceType}`); // 'yrc' | 'lrc' | 'none'
-  console.log(`元数据数量：${result.metadata.length}`);
+  console.log('纯音乐，无歌词')
+}
+else {
+  console.log(`解析来源：${result.sourceType}`) // 'yrc' | 'lrc' | 'none'
+  console.log(`元数据数量：${result.metadata.length}`)
 }
 
 // 4. 在播放器时间更新时同步歌词
 function onTimeUpdate(currentTime: number) {
-  const state = result.state;
+  const state = result.state
 
   // 同步当前时间，获取当前行索引
-  syncByTime(state, currentTime);
+  syncByTime(state, currentTime)
 
   // 获取当前所有轨道的歌词内容
-  const lyrics = getCurrentLyrics(state, currentTime);
-  console.log('原文：', lyrics.original);
-  console.log('翻译：', lyrics.translation);
-  console.log('罗马音：', lyrics.romaji);
+  const lyrics = getCurrentLyrics(state, currentTime)
+  console.log('原文：', lyrics.original)
+  console.log('翻译：', lyrics.translation)
+  console.log('罗马音：', lyrics.romaji)
 
   // 获取卡拉OK进度
-  const karaoke = getKaraokeProgress(state);
-  console.log(`已唱完：${karaoke.highlighted}`);
-  console.log(`待唱：${karaoke.remaining}`);
-  console.log(`进度：${karaoke.highlightedCount}/${karaoke.totalCount}`);
+  const karaoke = getKaraokeProgress(state)
+  console.log(`已唱完：${karaoke.highlighted}`)
+  console.log(`待唱：${karaoke.remaining}`)
+  console.log(`进度：${karaoke.highlightedCount}/${karaoke.totalCount}`)
 }
 ```
 
@@ -76,7 +77,7 @@ function onTimeUpdate(currentTime: number) {
 歌词类型。
 
 ```typescript
-type LyricType = 'line' | 'word';
+type LyricType = 'line' | 'word'
 ```
 
 #### LyricMetadata
@@ -84,11 +85,11 @@ type LyricType = 'line' | 'word';
 
 ```typescript
 interface LyricMetadata {
-  type: MetadataType;       // 元数据类型：'lyrics_info' | 'production' | 'other'
-  time: number;             // 出现时间（毫秒）
-  text: string;             // 元数据文本内容
-  imageUrl?: string;        // 附加图片链接（可选）
-  orpheusUrl?: string;      // Orpheus链接（可选）
+  type: MetadataType // 元数据类型：'lyrics_info' | 'production' | 'other'
+  time: number // 出现时间（毫秒）
+  text: string // 元数据文本内容
+  imageUrl?: string // 附加图片链接（可选）
+  orpheusUrl?: string // Orpheus链接（可选）
 }
 ```
 
@@ -97,9 +98,9 @@ interface LyricMetadata {
 
 ```typescript
 interface LyricItem {
-  text: string;      // 内容文本
-  startTime: number; // 开始时间（毫秒）
-  duration: number;  // 持续时间（毫秒）
+  text: string // 内容文本
+  startTime: number // 开始时间（毫秒）
+  duration: number // 持续时间（毫秒）
 }
 ```
 
@@ -108,10 +109,10 @@ interface LyricItem {
 
 ```typescript
 interface LyricLine {
-  items: LyricItem[];     // 该行歌词的所有内容项
-  startTime: number;      // 行开始时间
-  duration: number;       // 行持续时间
-  originalText: string;   // 原始文本（用于回退/调试）
+  items: LyricItem[] // 该行歌词的所有内容项
+  startTime: number // 行开始时间
+  duration: number // 行持续时间
+  originalText: string // 原始文本（用于回退/调试）
 }
 ```
 
@@ -120,10 +121,10 @@ interface LyricLine {
 
 ```typescript
 interface LyricData {
-  type: LyricType;         // 原始类型：'line' | 'word'
-  lines: LyricLine[];      // 歌词行列表
-  translation?: string[];  // 翻译歌词（可选）
-  romaji?: string[];       // 罗马音歌词（可选）
+  type: LyricType // 原始类型：'line' | 'word'
+  lines: LyricLine[] // 歌词行列表
+  translation?: string[] // 翻译歌词（可选）
+  romaji?: string[] // 罗马音歌词（可选）
 }
 ```
 
@@ -132,9 +133,9 @@ interface LyricData {
 
 ```typescript
 interface LyricTrack {
-  type: 'original' | 'translation' | 'romaji'; // 轨类型
-  data: LyricData;                              // 歌词数据
-  enabled: boolean;                             // 是否启用
+  type: 'original' | 'translation' | 'romaji' // 轨类型
+  data: LyricData // 歌词数据
+  enabled: boolean // 是否启用
 }
 ```
 
@@ -143,11 +144,11 @@ interface LyricTrack {
 
 ```typescript
 interface LyricState {
-  currentTime: number;        // 当前播放时间（毫秒）
-  currentLineIndex: number;   // 当前高亮的行索引
-  currentWordIndex: number;   // 当前高亮的字索引（在当前行内）
-  tracks: LyricTrack[];       // 所有歌词轨
-  isPlaying: boolean;         // 是否正在播放
+  currentTime: number // 当前播放时间（毫秒）
+  currentLineIndex: number // 当前高亮的行索引
+  currentWordIndex: number // 当前高亮的字索引（在当前行内）
+  tracks: LyricTrack[] // 所有歌词轨
+  isPlaying: boolean // 是否正在播放
 }
 ```
 
@@ -156,10 +157,10 @@ interface LyricState {
 
 ```typescript
 interface LyricParseResult {
-  state: LyricState;          // 歌词状态（用于播放）
-  metadata: LyricMetadata[];  // 提取的元数据列表
-  isInstrumental: boolean;    // 是否为纯音乐/无人声
-  sourceType: 'yrc' | 'lrc' | 'none'; // 原始歌词类型
+  state: LyricState // 歌词状态（用于播放）
+  metadata: LyricMetadata[] // 提取的元数据列表
+  isInstrumental: boolean // 是否为纯音乐/无人声
+  sourceType: 'yrc' | 'lrc' | 'none' // 原始歌词类型
 }
 ```
 
@@ -168,12 +169,12 @@ interface LyricParseResult {
 
 ```typescript
 interface RawLyricResponse {
-  lrc?: { lyric: string; version: number } | null;
-  tlyric?: { lyric: string; version: number } | null;
-  romalrc?: { lyric: string; version: number } | null;
-  yrc?: { lyric: string; version: number } | null;
-  ytlrc?: { lyric: string; version: number } | null;
-  yromalrc?: { lyric: string; version: number } | null;
+  lrc?: { lyric: string, version: number } | null
+  tlyric?: { lyric: string, version: number } | null
+  romalrc?: { lyric: string, version: number } | null
+  yrc?: { lyric: string, version: number } | null
+  ytlrc?: { lyric: string, version: number } | null
+  yromalrc?: { lyric: string, version: number } | null
 }
 ```
 
@@ -194,10 +195,10 @@ function parse(rawLyric: RawLyricResponse): LyricParseResult
 
 **示例：**
 ```typescript
-const result = parse(apiResponse);
-console.log(result.isInstrumental); // 是否为纯音乐
-console.log(result.metadata);       // 元数据列表
-console.log(result.state);          // 歌词状态
+const result = parse(apiResponse)
+console.log(result.isInstrumental) // 是否为纯音乐
+console.log(result.metadata) // 元数据列表
+console.log(result.state) // 歌词状态
 ```
 
 #### parseLrc
@@ -216,17 +217,17 @@ function parseLrc(lrcText: string): LyricData
 **示例：**
 ```typescript
 const lrcText = `[00:24.00]歌词内容
-[00:29.00]第二行歌词`;
+[00:29.00]第二行歌词`
 
-const lyricData = parseLrc(lrcText);
-console.log(lyricData.lines.length); // 2
+const lyricData = parseLrc(lrcText)
+console.log(lyricData.lines.length) // 2
 ```
 
 #### parseYrc
 解析网易云逐字歌词。
 
 ```typescript
-function parseYrc(yrcText: string): { data: LyricData; metadata: LyricMetadata[] }
+function parseYrc(yrcText: string): { data: LyricData, metadata: LyricMetadata[] }
 ```
 
 **参数：**
@@ -239,11 +240,11 @@ function parseYrc(yrcText: string): { data: LyricData; metadata: LyricMetadata[]
 
 **示例：**
 ```typescript
-const yrcText = `[24790,3600](24790,360,0)你(25150,170,0)好`;
+const yrcText = `[24790,3600](24790,360,0)你(25150,170,0)好`
 
-const { data, metadata } = parseYrc(yrcText);
-console.log(data.type);    // 'word'
-console.log(data.lines[0].items.length); // 字数
+const { data, metadata } = parseYrc(yrcText)
+console.log(data.type) // 'word'
+console.log(data.lines[0].items.length) // 字数
 ```
 
 #### parseTranslation
@@ -261,8 +262,8 @@ function parseTranslation(tlyricText: string): string[]
 
 **示例：**
 ```typescript
-const translation = `[00:24.00]〖这是翻译〗`;
-parseTranslation(translation); // ['这是翻译']
+const translation = `[00:24.00]〖这是翻译〗`
+parseTranslation(translation) // ['这是翻译']
 ```
 
 #### parseRomaji
@@ -296,8 +297,8 @@ function syncByTime(state: LyricState, currentTime: number): number
 
 **示例：**
 ```typescript
-const lineIndex = syncByTime(state, 30000);
-console.log(`当前行：${lineIndex}`);
+const lineIndex = syncByTime(state, 30000)
+console.log(`当前行：${lineIndex}`)
 ```
 
 #### getCurrentLyrics
@@ -305,9 +306,9 @@ console.log(`当前行：${lineIndex}`);
 
 ```typescript
 function getCurrentLyrics(state: LyricState, currentTime: number): {
-  original?: string;
-  translation?: string;
-  romaji?: string;
+  original?: string
+  translation?: string
+  romaji?: string
 }
 ```
 
@@ -320,9 +321,9 @@ function getCurrentLyrics(state: LyricState, currentTime: number): {
 
 **示例：**
 ```typescript
-const lyrics = getCurrentLyrics(state, 30000);
-console.log(lyrics.original);   // 当前原文
-console.log(lyrics.translation); // 当前翻译
+const lyrics = getCurrentLyrics(state, 30000)
+console.log(lyrics.original) // 当前原文
+console.log(lyrics.translation) // 当前翻译
 ```
 
 #### getHighlightProgress
@@ -341,8 +342,8 @@ function getHighlightProgress(state: LyricState, currentTime: number): number
 
 **示例：**
 ```typescript
-const progress = getHighlightProgress(state, 30000);
-console.log(`进度：${(progress * 100).toFixed(1)}%`);
+const progress = getHighlightProgress(state, 30000)
+console.log(`进度：${(progress * 100).toFixed(1)}%`)
 ```
 
 #### getKaraokeProgress
@@ -350,10 +351,10 @@ console.log(`进度：${(progress * 100).toFixed(1)}%`);
 
 ```typescript
 function getKaraokeProgress(state: LyricState): {
-  highlighted: string;    // 已高亮的文本
-  remaining: string;      // 待显示的文本
-  highlightedCount: number;
-  totalCount: number;
+  highlighted: string // 已高亮的文本
+  remaining: string // 待显示的文本
+  highlightedCount: number
+  totalCount: number
 }
 ```
 
@@ -365,10 +366,10 @@ function getKaraokeProgress(state: LyricState): {
 
 **示例：**
 ```typescript
-const karaoke = getKaraokeProgress(state);
-console.log(`已唱：${karaoke.highlighted}`);
-console.log(`待唱：${karaoke.remaining}`);
-console.log(`进度：${karaoke.highlightedCount}/${karaoke.totalCount}`);
+const karaoke = getKaraokeProgress(state)
+console.log(`已唱：${karaoke.highlighted}`)
+console.log(`待唱：${karaoke.remaining}`)
+console.log(`进度：${karaoke.highlightedCount}/${karaoke.totalCount}`)
 ```
 
 #### toggleTrack
@@ -389,10 +390,10 @@ function toggleTrack(state: LyricState, trackType: LyricTrack['type'], enabled: 
 **示例：**
 ```typescript
 // 开启翻译轨道
-toggleTrack(state, 'translation', true);
+toggleTrack(state, 'translation', true)
 
 // 关闭罗马音轨道
-toggleTrack(state, 'romaji', false);
+toggleTrack(state, 'romaji', false)
 ```
 
 #### getLineWordTimings
@@ -454,8 +455,8 @@ function timeToMs(timeStr: string): number
 
 **示例：**
 ```typescript
-timeToMs('[00:24.00]'); // 24000
-timeToMs('[01:30.50]'); // 90500
+timeToMs('[00:24.00]') // 24000
+timeToMs('[01:30.50]') // 90500
 ```
 
 #### msToTime
@@ -473,8 +474,8 @@ function msToTime(ms: number): string
 
 **示例：**
 ```typescript
-msToTime(24000);  // '00:24'
-msToTime(90500);  // '01:30'
+msToTime(24000) // '00:24'
+msToTime(90500) // '01:30'
 ```
 
 #### isInstrumental
@@ -500,7 +501,7 @@ const result = parse({
   yrc: { lyric: yrcText, version: 26 },
   ytlrc: { lyric: ytlrcText, version: 4 },
   yromalrc: { lyric: yromalrcText, version: 3 },
-});
+})
 // result.sourceType === 'yrc'
 ```
 
@@ -512,7 +513,7 @@ const result = parse({
   lrc: { lyric: lrcText, version: 25 },
   tlyric: { lyric: tlyricText, version: 15 },
   romalrc: { lyric: romalrcText, version: 10 },
-});
+})
 // result.sourceType === 'lrc'
 // 卡拉OK效果为逐行高亮
 ```
@@ -524,7 +525,7 @@ const result = parse({
 const result = parse({
   lrc: { lyric: '', version: 1 },
   yrc: null,
-});
+})
 // result.isInstrumental === true
 // result.sourceType === 'none'
 ```
@@ -534,9 +535,9 @@ const result = parse({
 
 ```typescript
 const yrcWithMetadata = `{"t":0,"c":[{"tx":"作词:"},{"tx":"某人"}]}
-[28410,4320](28410,270,0)女(28680,180,0)孩...`;
+[28410,4320](28410,270,0)女(28680,180,0)孩...`
 
-const { data, metadata } = parseYrc(yrcWithMetadata);
+const { data, metadata } = parseYrc(yrcWithMetadata)
 // metadata 包含元数据
 // data.lines 包含纯歌词
 ```
@@ -544,93 +545,94 @@ const { data, metadata } = parseYrc(yrcWithMetadata);
 ## 完整使用示例
 
 ```typescript
+import type { LyricState } from './lyric'
 import {
+  getCurrentLyrics,
+  getHighlightProgress,
+  getKaraokeProgress,
+
   parse,
   syncByTime,
-  getCurrentLyrics,
-  getKaraokeProgress,
-  toggleTrack,
-  getHighlightProgress,
-  type LyricState,
-} from './lyric';
+  toggleTrack
+} from './lyric'
 
 // 从API获取歌词数据
 async function fetchLyric(songId: number) {
-  const response = await fetch(`/api/lyric?id=${songId}`);
-  return response.json();
+  const response = await fetch(`/api/lyric?id=${songId}`)
+  return response.json()
 }
 
 // 播放器类示例
 class LyricPlayer {
-  private state: LyricState;
-  private audio: HTMLAudioElement;
+  private state: LyricState
+  private audio: HTMLAudioElement
 
   constructor(audio: HTMLAudioElement, rawLyric: any) {
-    this.audio = audio;
-    const result = parse(rawLyric);
+    this.audio = audio
+    const result = parse(rawLyric)
 
     // 保存元数据
-    console.log('元数据：', result.metadata);
+    console.log('元数据：', result.metadata)
 
     // 设置纯音乐占位
     if (result.isInstrumental) {
-      console.log('纯音乐');
+      console.log('纯音乐')
     }
 
-    this.state = result.state;
+    this.state = result.state
 
     // 默认开启原文和翻译轨道
-    toggleTrack(this.state, 'original', true);
-    toggleTrack(this.state, 'translation', true);
+    toggleTrack(this.state, 'original', true)
+    toggleTrack(this.state, 'translation', true)
 
     // 绑定时间更新事件
     this.audio.addEventListener('timeupdate', () => {
-      this.onTimeUpdate();
-    });
+      this.onTimeUpdate()
+    })
   }
 
   private onTimeUpdate() {
-    const currentTime = this.audio.currentTime * 1000; // 转换为毫秒
+    const currentTime = this.audio.currentTime * 1000 // 转换为毫秒
 
     // 同步歌词状态
-    const lineIndex = syncByTime(this.state, currentTime);
+    const lineIndex = syncByTime(this.state, currentTime)
 
     if (lineIndex >= 0) {
       // 获取当前歌词
-      const lyrics = getCurrentLyrics(this.state, currentTime);
+      const lyrics = getCurrentLyrics(this.state, currentTime)
 
       // 更新UI
-      this.updateLyricDisplay(lyrics);
+      this.updateLyricDisplay(lyrics)
 
       // 获取卡拉OK进度
-      const karaoke = getKaraokeProgress(this.state);
-      this.updateKaraokeDisplay(karaoke);
+      const karaoke = getKaraokeProgress(this.state)
+      this.updateKaraokeDisplay(karaoke)
     }
   }
 
-  private updateLyricDisplay(lyrics: { original?: string; translation?: string }) {
+  private updateLyricDisplay(lyrics: { original?: string, translation?: string }) {
     // 更新DOM元素显示歌词
-    document.getElementById('original')!.textContent = lyrics.original || '';
-    document.getElementById('translation')!.textContent = lyrics.translation || '';
+    document.getElementById('original')!.textContent = lyrics.original || ''
+    document.getElementById('translation')!.textContent = lyrics.translation || ''
   }
 
-  private updateKaraokeDisplay(karaoke: { highlighted: string; remaining: string }) {
+  private updateKaraokeDisplay(karaoke: { highlighted: string, remaining: string }) {
     // 实现逐字卡拉OK效果
-    const karaokeElement = document.getElementById('karaoke');
+    const karaokeElement = document.getElementById('karaoke')
     if (karaokeElement) {
       karaokeElement.innerHTML = `
         <span class="highlighted">${karaoke.highlighted}</span>
         <span class="remaining">${karaoke.remaining}</span>
-      `;
+      `
     }
   }
 
   toggleTranslation(show: boolean) {
-    toggleTrack(this.state, 'translation', show);
+    toggleTrack(this.state, 'translation', show)
   }
 
   toggleRomaji(show: boolean) {
-    toggleTrack(this.state, 'romaji', show);
+    toggleTrack(this.state, 'romaji', show)
   }
 }
 ```

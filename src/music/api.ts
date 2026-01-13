@@ -1,5 +1,5 @@
-import { snakeToCamelObj } from 'field-conv'
 import type { MusicTrack } from './types'
+import { snakeToCamelObj } from 'field-conv'
 
 // 复刻自 sfkm.me：歌单来自 CDN 的 json
 export async function fetchPlaylist(): Promise<MusicTrack[]> {
@@ -22,7 +22,8 @@ export async function fetchNcmLyric(songId: number): Promise<string> {
   try {
     const json = JSON.parse(text)
     return json?.lyric ?? (json?.nolyric ? '[00:00.00]pure_music_without_lyric' : '[00:00.00]no_lyric')
-  } catch (e) {
+  }
+  catch (e) {
     console.error('Failed to parse lyrics JSON:', e)
     return '[00:00.00]no_lyric'
   }

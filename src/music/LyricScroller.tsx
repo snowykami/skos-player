@@ -1,12 +1,18 @@
+import type { LyricLine } from '@/lyric/types'
 import React, { useEffect, useRef, useState } from 'react'
-import { getLyricColor, getAlbumCoverColor } from './color'
+import { useDevice } from '@/contexts/DeviceContext'
 import { useLyric } from '@/hooks/useLyric'
 import { useMusic } from '@/hooks/useMusic'
-import { useDevice } from '@/contexts/DeviceContext'
+import { getAlbumCoverColor, getLyricColor } from './color'
 import ThemeModeButtons from './ThemeModeButtons'
-import type { LyricLine } from '@/lyric/types'
 
-export default function LyricScroller() {
+export type LyricScrollerVariant = 'desktop' | 'mobile'
+
+type Props = {
+  variant?: LyricScrollerVariant
+}
+
+export default function LyricScroller({ variant = 'desktop' }: Props) {
   const {
     lyricLines,
     currentLyricIndex,
@@ -45,7 +51,8 @@ export default function LyricScroller() {
   // 切歌时把歌词滚到顶部（而不是沿用上一首歌的滚动位置）
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container)
+      return
     // 重置对齐与滚动位置
     lastAutoAlignedIndexRef.current = -1
     isAutoScrollingRef.current = true
@@ -57,11 +64,13 @@ export default function LyricScroller() {
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container)
+      return
 
     const onUserScroll = () => {
       // 如果是代码触发的滚动，不视为用户滚动
-      if (isAutoScrollingRef.current) return
+      if (isAutoScrollingRef.current)
+        return
       setAutoScrollEnabled(false)
     }
 
@@ -70,7 +79,6 @@ export default function LyricScroller() {
     return () => container.removeEventListener('scroll', onUserScroll)
   }, [])
 
-
   // 滚动到当前行：
   // - 当 autoScrollEnabled=true 时持续跟随当前行
   // - 当用户手动滚动（autoScrollEnabled=false）后，仅在歌词行更新（currentLyricIndex 变化）时回正一次
@@ -78,8 +86,10 @@ export default function LyricScroller() {
 
   useEffect(() => {
     const shouldAlign = autoScrollEnabled || (currentLyricIndex !== lastAutoAlignedIndexRef.current)
-    if (!shouldAlign) return
-    if (!containerRef.current || !lineRefs.current[currentLyricIndex] || lyricLines.length === 0) return
+    if (!shouldAlign)
+      return
+    if (!containerRef.current || !lineRefs.current[currentLyricIndex] || lyricLines.length === 0)
+      return
 
     const container = containerRef.current
     const target = lineRefs.current[currentLyricIndex]
@@ -88,7 +98,8 @@ export default function LyricScroller() {
 
     // 已经在附近就不滚，避免因行高变化反复触发造成闪烁
     const diff = targetOffset - container.scrollTop
-    if (Math.abs(diff) < 6) return
+    if (Math.abs(diff) < 6)
+      return
 
     const start = container.scrollTop
     const change = diff
@@ -96,7 +107,8 @@ export default function LyricScroller() {
     let startTime: number | null = null
 
     function animateScroll(timestamp: number) {
-      if (!startTime) startTime = timestamp
+      if (!startTime)
+        startTime = timestamp
       const elapsed = timestamp - startTime
       const progress = Math.min(elapsed / duration, 1)
       const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress
@@ -104,7 +116,8 @@ export default function LyricScroller() {
       container.scrollTop = start + change * ease
       if (progress < 1) {
         requestAnimationFrame(animateScroll)
-      } else {
+      }
+      else {
         lastAutoAlignedIndexRef.current = currentLyricIndex
         // 下一帧再释放标记，避免 scroll 事件误判
         requestAnimationFrame(() => {
@@ -132,7 +145,8 @@ export default function LyricScroller() {
     let lastRenderedMs = -1
 
     const tick = () => {
-      if (!mounted) return
+      if (!mounted)
+        return
       const audio = getAudio()
       if (audio) {
         // 音频时间单位：秒 -> 毫秒
@@ -161,18 +175,22 @@ export default function LyricScroller() {
     }
 
     const t = smoothTime || (currentTime ?? 0)
-    if (t <= item.startTime) return 0
-    if (t >= item.startTime + item.duration) return 1
+    if (t <= item.startTime)
+      return 0
+    if (t >= item.startTime + item.duration)
+      return 1
     return (t - item.startTime) / item.duration
   }
 
   // 根据时间获取当前行的翻译或罗马音
   const getExtraTextForLine = (lineStartTime: number): string => {
-    if (lyricMode === 'none') return ''
+    if (lyricMode === 'none')
+      return ''
 
     // 查找对应模式的轨道
     const track = tracks.find(t => t.type === lyricMode && t.enabled)
-    if (!track) return ''
+    if (!track)
+      return ''
 
     // 在轨道中查找对应时间的行
     const extraLine = track.data.lines.find(l => l.startTime === lineStartTime)
@@ -183,7 +201,7 @@ export default function LyricScroller() {
     // 找不到精确匹配，尝试找最近的行
     if (track.data.lines.length > 0) {
       const closestLine = track.data.lines.reduce((prev, curr) =>
-        Math.abs(curr.startTime - lineStartTime) < Math.abs(prev.startTime - lineStartTime) ? curr : prev
+        Math.abs(curr.startTime - lineStartTime) < Math.abs(prev.startTime - lineStartTime) ? curr : prev,
       )
       return closestLine.items.map(item => item.text).join('')
     }
@@ -197,11 +215,75 @@ export default function LyricScroller() {
   const isTranslationActive = lyricMode === 'translation'
   const isRomajiActive = lyricMode === 'romaji'
 
+  // 双击式定位（第一次提示时间，第二次跳转）
+  const [pendingSeek, setPendingSeek] = useState<{ startTime: number; at: number } | null>(null)
+  const [seekHint, setSeekHint] = useState<{ startTime: number; text: string } | null>(null)
+  const seekHintTimerRef = useRef<number | null>(null)
+
+  const formatMsToMmSs = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000)
+    const m = Math.floor(totalSeconds / 60)
+    const s = totalSeconds % 60
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+
+  const showSeekHint = (startTime: number) => {
+    setSeekHint({ startTime, text: formatMsToMmSs(startTime) })
+    if (seekHintTimerRef.current != null) {
+      window.clearTimeout(seekHintTimerRef.current)
+    }
+    seekHintTimerRef.current = window.setTimeout(() => {
+      setSeekHint(null)
+      setPendingSeek(null)
+      seekHintTimerRef.current = null
+    }, 1200)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (seekHintTimerRef.current != null) {
+        window.clearTimeout(seekHintTimerRef.current)
+        seekHintTimerRef.current = null
+      }
+    }
+  }, [])
+
+  // 当前行变化时，取消待确认的跳转（避免误触残留）
+  useEffect(() => {
+    setPendingSeek(null)
+    setSeekHint(null)
+    if (seekHintTimerRef.current != null) {
+      window.clearTimeout(seekHintTimerRef.current)
+      seekHintTimerRef.current = null
+    }
+  }, [currentLyricIndex, lyricLines.length])
+
+  const handleLineClickToSeek = (startTime: number) => {
+    const now = Date.now()
+    const withinWindow = pendingSeek?.startTime === startTime && now - pendingSeek.at <= 700
+
+    if (withinWindow) {
+      // 第二次点击：跳转
+      setPendingSeek(null)
+      setSeekHint(null)
+      if (seekHintTimerRef.current != null) {
+        window.clearTimeout(seekHintTimerRef.current)
+        seekHintTimerRef.current = null
+      }
+      seek(startTime / 1000)
+      return
+    }
+
+    // 第一次点击：提示时间（不跳转）
+    setPendingSeek({ startTime, at: now })
+    showSeekHint(startTime)
+  }
+
   return (
     <div className="relative h-full flex flex-col">
-      {/* 模式按钮：悬浮在歌词区域右下角，竖向排列；再次点击已选中 => 无 */}
+      {/* 模式按钮：悬浮在歌词区域右下角（移动端改为横排） */}
       <div className="absolute right-3 bottom-3 z-20">
-        <div className="flex flex-col gap-2">
+        <div className={variant === 'mobile' ? 'flex flex-row gap-2' : 'flex flex-col gap-2'}>
           {hasTranslation && (
             <button
               type="button"
@@ -252,8 +334,16 @@ export default function LyricScroller() {
 
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto px-4 py-6 text-base leading-10 relative transition-colors max-w-full hide-scrollbar"
+        className={`flex-1 overflow-y-auto px-4 py-6 text-base leading-10 relative transition-colors max-w-full hide-scrollbar ${variant === 'mobile' ? 'text-center' : ''}`}
       >
+        {seekHint && (
+          <div className="sticky top-0 z-30 pb-2">
+            <div className="mx-auto w-fit px-2 py-1 rounded bg-black/35 text-white/95 text-xs font-mono select-none">
+              {seekHint.text}
+            </div>
+          </div>
+        )}
+
         {lyricLines.length === 0 ? (
           <div className="text-center text-slate-600 dark:text-slate-500">暂无歌词</div>
         ) : (
@@ -263,9 +353,12 @@ export default function LyricScroller() {
 
             // 样式计算
             let styleClass = ''
-            if (offset === 0) styleClass = 'opacity-100 scale-100 translate-y-0 z-10'
-            else if (Math.abs(offset) === 1) styleClass = `opacity-90 scale-95 ${offset > 0 ? 'translate-y-2' : '-translate-y-2'} z-0`
-            else if (Math.abs(offset) === 2) styleClass = `opacity-85 scale-95 ${offset > 0 ? 'translate-y-4' : '-translate-y-4'} z-0`
+            if (offset === 0)
+              styleClass = 'opacity-100 scale-100 translate-y-0 z-10'
+            else if (Math.abs(offset) === 1)
+              styleClass = `opacity-90 scale-95 ${offset > 0 ? 'translate-y-2' : '-translate-y-2'} z-0`
+            else if (Math.abs(offset) === 2)
+              styleClass = `opacity-85 scale-95 ${offset > 0 ? 'translate-y-4' : '-translate-y-4'} z-0`
             else styleClass = `opacity-80 scale-95 ${offset > 0 ? 'translate-y-6' : '-translate-y-6'} z-0`
 
             const originalText = getOriginalText(line)
@@ -274,13 +367,21 @@ export default function LyricScroller() {
             return (
               <div
                 key={line.startTime + originalText + idx}
-                onClick={() => seek(line.startTime / 1000)}
+                onClick={() => handleLineClickToSeek(line.startTime)}
                 ref={(el) => {
                   lineRefs.current[idx] = el
                 }}
-                className={`select-none px-2 py-1 rounded transition-all duration-300 ease-out w-full relative cursor-pointer ${styleClass}`}
-                onMouseDown={() => setAutoScrollEnabled(true)}
-                onTouchStart={() => setAutoScrollEnabled(true)}
+                className={`select-none px-2 py-1 rounded transition-all duration-300 ease-out w-full relative cursor-pointer ${styleClass} ${
+                  variant === 'mobile' ? 'flex flex-col items-center' : ''
+                }`}
+                onMouseDown={(e) => {
+                  // 点击某行时不应触发自动对齐滚动
+                  // 仍允许拖拽/滚动时通过 scroll 监听去关闭自动滚动
+                  e.stopPropagation()
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation()
+                }}
                 style={{
                   color: (() => {
                     if (!isCurrent) {
@@ -331,7 +432,7 @@ export default function LyricScroller() {
                               : (isDark ? lyricColor.nightUnplayedText : lyricColor.dayUnplayedText),
                           }}
                         >
-                          {item.text.replace(/\s+$/g, (m) => '\u00A0'.repeat(m.length))}
+                          {item.text.replace(/\s+$/g, m => '\u00A0'.repeat(m.length))}
                         </span>
                       )
                     }
@@ -356,7 +457,7 @@ export default function LyricScroller() {
                       >
                         {/* 底色：显示“未播放色”（进度色） */}
                         <span className="select-none" style={{ color: progressColor }}>
-                          {item.text.replace(/\s+$/g, (m) => '\u00A0'.repeat(m.length))}
+                          {item.text.replace(/\s+$/g, m => '\u00A0'.repeat(m.length))}
                         </span>
 
                         {/* 覆盖层：显示“已播放色”（基底色）并从左到右裁剪 */}
@@ -370,7 +471,7 @@ export default function LyricScroller() {
                               pointerEvents: 'none',
                             }}
                           >
-                            {item.text.replace(/\s+$/g, (m) => '\u00A0'.repeat(m.length))}
+                            {item.text.replace(/\s+$/g, m => '\u00A0'.repeat(m.length))}
                           </span>
                         )}
                       </span>

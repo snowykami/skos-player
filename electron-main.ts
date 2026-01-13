@@ -1,6 +1,6 @@
-import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { app, BrowserWindow } from 'electron'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isDev = !app.isPackaged
@@ -33,7 +33,8 @@ function createWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow?.webContents.openDevTools({ mode: 'detach' })
     })
-  } else {
+  }
+  else {
     void mainWindow.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'))
   }
 

@@ -49,11 +49,16 @@ export function hslToHex(h: number, s: number, l: number) {
   let r = 0
   let g = 0
   let b = 0
-  if (h < 60) [r, g, b] = [c, x, 0]
-  else if (h < 120) [r, g, b] = [x, c, 0]
-  else if (h < 180) [r, g, b] = [0, c, x]
-  else if (h < 240) [r, g, b] = [0, x, c]
-  else if (h < 300) [r, g, b] = [x, 0, c]
+  if (h < 60)
+    [r, g, b] = [c, x, 0]
+  else if (h < 120)
+    [r, g, b] = [x, c, 0]
+  else if (h < 180)
+    [r, g, b] = [0, c, x]
+  else if (h < 240)
+    [r, g, b] = [0, x, c]
+  else if (h < 300)
+    [r, g, b] = [x, 0, c]
   else [r, g, b] = [c, 0, x]
 
   const toHex = (v: number) => {
@@ -77,7 +82,8 @@ export function deriveLyricThemeColors(themeColor: string) {
       g = +arr[1]
       b = +arr[2]
     }
-  } else if (themeColor.startsWith('#')) {
+  }
+  else if (themeColor.startsWith('#')) {
     const rgb = hexToRgb(themeColor)
     if (rgb) {
       r = rgb.r
@@ -123,7 +129,8 @@ export function getLyricColor(themeColor: string) {
       g = +arr[1]
       b = +arr[2]
     }
-  } else if (themeColor.startsWith('#')) {
+  }
+  else if (themeColor.startsWith('#')) {
     const rgb = hexToRgb(themeColor)
     if (rgb) {
       r = rgb.r
@@ -156,7 +163,8 @@ export function getLyricColor(themeColor: string) {
 const DEFAULT_COVER_COLOR = 'rgb(100, 100, 100)'
 
 export async function getAlbumCoverColor(cover: string): Promise<string> {
-  if (!cover) return DEFAULT_COVER_COLOR
+  if (!cover)
+    return DEFAULT_COVER_COLOR
 
   try {
     const img = new Image()
@@ -172,7 +180,8 @@ export async function getAlbumCoverColor(cover: string): Promise<string> {
     canvas.width = size
     canvas.height = size
     const ctx = canvas.getContext('2d')
-    if (!ctx) return DEFAULT_COVER_COLOR
+    if (!ctx)
+      return DEFAULT_COVER_COLOR
 
     ctx.drawImage(img, 0, 0, size, size)
 
@@ -187,7 +196,8 @@ export async function getAlbumCoverColor(cover: string): Promise<string> {
     smallCanvas.width = finalSize
     smallCanvas.height = finalSize
     const smallCtx = smallCanvas.getContext('2d')
-    if (!smallCtx) return DEFAULT_COVER_COLOR
+    if (!smallCtx)
+      return DEFAULT_COVER_COLOR
 
     smallCtx.drawImage(canvas, 0, 0, size, size, 0, 0, finalSize, finalSize)
 
@@ -200,13 +210,15 @@ export async function getAlbumCoverColor(cover: string): Promise<string> {
     if (avgLuminance < 40) {
       const factor = 40 / avgLuminance
       return `rgb(${Math.min(255, Math.round(r * factor))}, ${Math.min(255, Math.round(g * factor))}, ${Math.min(255, Math.round(b * factor))})`
-    } else if (avgLuminance > 220) {
+    }
+    else if (avgLuminance > 220) {
       const factor = 220 / avgLuminance
       return `rgb(${Math.round(r * factor)}, ${Math.round(g * factor)}, ${Math.round(b * factor)})`
     }
 
     return `rgb(${r}, ${g}, ${b})`
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to get album cover color:', error)
     return DEFAULT_COVER_COLOR
   }

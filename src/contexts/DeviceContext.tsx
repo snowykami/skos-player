@@ -1,4 +1,3 @@
-
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 
 type Mode = 'light' | 'dark' | 'system'
@@ -97,7 +96,8 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // 初始化主题和系统主题变化监听
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined')
+      return
 
     // 初次应用（mode 已由 lazy initializer 决定）
     applyTheme(mode)
