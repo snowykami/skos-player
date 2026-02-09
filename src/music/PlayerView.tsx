@@ -26,15 +26,15 @@ export default function PlayerView() {
         <div className="flex-1 min-h-0 flex flex-col px-4">
           {mobileCenterView === 'album'
             ? (
-              <div className="flex-1 min-h-0 flex items-center justify-center">
-                <Album onClick={() => setMobileCenterView('lyric')} />
-              </div>
-            )
+                <div className="flex-1 min-h-0 flex items-center justify-center">
+                  <Album onClick={() => setMobileCenterView('lyric')} />
+                </div>
+              )
             : (
-              <div className="flex-1 min-h-0">
-                <LyricScroller variant="mobile" />
-              </div>
-            )}
+                <div className="flex-1 min-h-0">
+                  <LyricScroller variant="mobile" />
+                </div>
+              )}
         </div>
 
       </div>

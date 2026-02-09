@@ -8,7 +8,7 @@
     "extends": "./electron-builder.json"
   },
   "scripts": {
-    "dev:fe": "vite",
+    "dev:fe": "vite --host",
     "build:fe": "tsc -b && vite build",
     "dev:electron": "VITE_DEV_SERVER_URL=http://127.0.0.1:5173/ pnpm -s electron:run",
     "electron:run": "pnpm -s electron:compile && node ./node_modules/electron/cli.js ./dist-electron/electron-main.js",

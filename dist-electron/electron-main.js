@@ -1,6 +1,6 @@
-import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { app, BrowserWindow } from 'electron';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = !app.isPackaged;
 let mainWindow = null;
@@ -24,7 +24,7 @@ function createWindow() {
     });
     if (isDev) {
         console.debug('MODE: Development');
-        void mainWindow.loadURL('http://localhost:5173');
+        void mainWindow.loadURL('https://skos-player.sfkm.me/');
         mainWindow.webContents.once('did-finish-load', () => {
             mainWindow?.webContents.openDevTools({ mode: 'detach' });
         });

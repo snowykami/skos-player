@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import { useLyric } from '@/hooks/useLyric'
 
 type PlayMode = 'repeat-all' | 'repeat-one' | 'shuffle'
 
@@ -58,6 +59,7 @@ export function useMusic(): MusicContextValue {
 
 export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const { lyricLines, currentLyricIndex } = useLyric()
   const pendingPlayRef = useRef(false)
   const prevTrackIdRef = useRef<number | null>(null)
   const [playlist, setPlaylist] = useState<MusicTrack[]>([])
@@ -389,9 +391,14 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ms.playbackState = 'none'
         return
       }
+
+      const hasLyric = lyricLines.length > 0 && currentLyricIndex >= 0 && currentLyricIndex < lyricLines.length
+      const lyricTitle = hasLyric ? (lyricLines[currentLyricIndex]?.originalText || '') : ''
+      const title = hasLyric && lyricTitle ? lyricTitle : (currentTrack.name ?? '')
+
       try {
         ms.metadata = new MediaMetadata({
-          title: currentTrack.name ?? '',
+          title,
           artist: Array.isArray(currentTrack.artists) ? currentTrack.artists.join(', ') : (currentTrack.artists ?? ''),
           album: currentTrack.album ?? '',
           artwork: makeArtwork(currentTrack.albumPic),
@@ -401,7 +408,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // 某些环境可能不支持构造函数
         try {
           ms.metadata = {
-            title: currentTrack.name ?? '',
+            title,
             artist: Array.isArray(currentTrack.artists) ? currentTrack.artists.join(', ') : (currentTrack.artists ?? ''),
             album: currentTrack.album ?? '',
             artwork: makeArtwork(currentTrack.albumPic),
@@ -471,7 +478,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // 某些浏览器/环境对 setActionHandler 有限制
       }
     }
-  }, [currentTrack, isPlaying, play, pause, next, prev])
+  }, [currentTrack, isPlaying, play, pause, next, prev, lyricLines, currentLyricIndex])
 
   const value: MusicContextValue = {
     playlist,
