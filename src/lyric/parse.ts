@@ -118,9 +118,9 @@ function parseYrcLine(lineText: string): LyricLine | null {
 
   // originalText 用于 UI/MediaSession 回退显示：逐字歌词这里需要按“逐行文本”展示
   // 不能把 YRC 的时间轴标记（例如 (start,dur,0)）带进去
-  const lineText = items.map(i => i.text).join('').trim()
+  const mergedText = items.map(i => i.text).join('').trim()
 
-  return { items, startTime: lineStartTime, duration: computedLineDuration, originalText: lineText || content }
+  return { items, startTime: lineStartTime, duration: computedLineDuration, originalText: mergedText || content }
 }
 
 /**
