@@ -59,22 +59,26 @@ export default function Music() {
     setIsPlaying(isPlaying)
   }, [isPlaying, setIsPlaying])
 
-  // 加载歌词
+  // 加载歌词：避免 StrictMode/热更新导致重复请求，强制按 lyricId 去重
+  const fetchStateRef = useRef<{ inFlight: boolean, lyricId: number | null }>({ inFlight: false, lyricId: null })
+
   useEffect(() => {
-    if (!currentTrack) {
-      activeLyricIdRef.current = null
+    const lyricId = currentTrack
+      ? ((currentTrack as { lyricId?: number }).lyricId ?? currentTrack.id)
+      : null
+
+    if (lyricId == null) {
+      fetchStateRef.current = { inFlight: false, lyricId: null }
       clearLyric()
       return
     }
 
-    const lyricId = (currentTrack as { lyricId?: number }).lyricId ?? currentTrack.id
-
-    // effect 可能因函数引用变化而重复触发，这里做一次幂等保护：同一首歌不重复发起加载
-    if (activeLyricIdRef.current === lyricId) {
+    // 已经为该 lyricId 发起过请求（或请求中），则不重复触发
+    if (fetchStateRef.current.lyricId === lyricId) {
       return
     }
 
-    activeLyricIdRef.current = lyricId
+    fetchStateRef.current = { inFlight: true, lyricId }
 
     // 切歌时先清空，避免短暂显示上一首歌词
     clearLyric()
@@ -83,32 +87,26 @@ export default function Music() {
       try {
         const rawLyric = await fetchAndCacheLyric(lyricId)
 
-        // 竞态保护：如果请求返回时歌曲已切换，丢弃结果
-        if (activeLyricIdRef.current !== lyricId)
+        // 竞态保护：如果期间切歌了，丢弃结果
+        if (fetchStateRef.current.lyricId !== lyricId)
           return
 
-        if (rawLyric) {
+        if (rawLyric)
           loadLyric(rawLyric)
-        }
       }
       catch (error) {
         console.error('Failed to load lyric:', error)
-
-        // 同样避免清掉“新歌”的歌词状态
-        if (activeLyricIdRef.current === lyricId) {
+        if (fetchStateRef.current.lyricId === lyricId)
           clearLyric()
-        }
+      }
+      finally {
+        if (fetchStateRef.current.lyricId === lyricId)
+          fetchStateRef.current.inFlight = false
       }
     }
 
     void loadLyricAsync()
-
-    return () => {
-      if (activeLyricIdRef.current === lyricId) {
-        activeLyricIdRef.current = null
-      }
-    }
-  }, [currentTrack, fetchAndCacheLyric, loadLyric, clearLyric])
+  }, [currentTrack?.id, fetchAndCacheLyric, loadLyric, clearLyric])
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">

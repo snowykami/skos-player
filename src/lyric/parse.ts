@@ -116,7 +116,11 @@ function parseYrcLine(lineText: string): LyricLine | null {
   const last = items[items.length - 1]
   const computedLineDuration = last ? Math.max(lineDuration, (last.startTime + last.duration) - lineStartTime) : lineDuration
 
-  return { items, startTime: lineStartTime, duration: computedLineDuration, originalText: content }
+  // originalText 用于 UI/MediaSession 回退显示：逐字歌词这里需要按“逐行文本”展示
+  // 不能把 YRC 的时间轴标记（例如 (start,dur,0)）带进去
+  const lineText = items.map(i => i.text).join('').trim()
+
+  return { items, startTime: lineStartTime, duration: computedLineDuration, originalText: lineText || content }
 }
 
 /**
