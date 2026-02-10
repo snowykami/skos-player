@@ -13,7 +13,6 @@ export default function Music() {
   const { currentTrack, currentTime, isPlaying } = useMusic()
   const { loadLyric, clearLyric, setCurrentTime, setIsPlaying } = useLyric()
   const lastSongTitleRef = useRef<string | null>(null)
-  const activeLyricIdRef = useRef<number | null>(null)
 
   const { execute: fetchAndCacheLyric } = useAsyncTask(
     async (lyricId: number) => {
