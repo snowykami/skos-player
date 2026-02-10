@@ -68,6 +68,12 @@ export default function Music() {
     }
 
     const lyricId = (currentTrack as { lyricId?: number }).lyricId ?? currentTrack.id
+
+    // effect 可能因函数引用变化而重复触发，这里做一次幂等保护：同一首歌不重复发起加载
+    if (activeLyricIdRef.current === lyricId) {
+      return
+    }
+
     activeLyricIdRef.current = lyricId
 
     // 切歌时先清空，避免短暂显示上一首歌词

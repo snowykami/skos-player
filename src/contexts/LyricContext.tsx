@@ -143,16 +143,29 @@ export const LyricProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // 清空歌词
   const clearLyric = useCallback(() => {
-    setLyricState({
-      currentTime: 0,
-      currentLineIndex: -1,
-      currentWordIndex: -1,
-      tracks: [],
-      isPlaying: false,
+    // 避免重复 setState 触发不必要的渲染/循环（例如外部 effect 依赖 clearLyric）
+    setLyricState((prev) => {
+      if (
+        prev.currentTime === 0
+        && prev.currentLineIndex === -1
+        && prev.currentWordIndex === -1
+        && prev.tracks.length === 0
+        && prev.isPlaying === false
+      ) {
+        return prev
+      }
+      return {
+        currentTime: 0,
+        currentLineIndex: -1,
+        currentWordIndex: -1,
+        tracks: [],
+        isPlaying: false,
+      }
     })
-    setMetadata([])
-    setIsInstrumental(true)
-    setSourceType('none')
+
+    setMetadata(prev => (prev.length === 0 ? prev : []))
+    setIsInstrumental(prev => (prev === true ? prev : true))
+    setSourceType(prev => (prev === 'none' ? prev : 'none'))
     // 不强制重置 lyricMode，保持用户选择
   }, [])
 

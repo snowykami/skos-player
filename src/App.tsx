@@ -61,13 +61,13 @@ function App() {
 
   return (
     <div className="h-full relative overflow-hidden">
-      <MusicProvider>
-        <LyricProvider>
+      <LyricProvider>
+        <MusicProvider>
           <DeviceProvider>
             <Music />
           </DeviceProvider>
-        </LyricProvider>
-      </MusicProvider>
+        </MusicProvider>
+      </LyricProvider>
       <div className="absolute z-50" style={dragOverlayStyle} />
     </div>
   )
